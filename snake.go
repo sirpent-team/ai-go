@@ -26,3 +26,13 @@ func (s Snake) HasSegmentAt(v Vector) bool {
 func (s Snake) HasCollidedIntoSnake(s2 Snake) bool {
 	return (s.Length > 0 && s2.HasSegmentAt(s.Segments[0].Position))
 }
+
+func (s *Snake) StepInDirection(direction int) {
+	// Move each segments to their parent location. Skip head for obvious reasons.
+	for i := s.Length - 1; i > 0; i-- {
+		s.Segments[i].Position = s.Segments[i-1].Position
+	}
+
+	// Update head position.
+	s.Segments[0].Position = s.Segments[0].Position.Neighbour(direction)
+}

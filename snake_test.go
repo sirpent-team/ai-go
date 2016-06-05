@@ -80,3 +80,25 @@ func TestHasCollidedIntoSnake(t *testing.T) {
 		t.Error("Unnoticed body collision with snake s4.")
 	}
 }
+
+func TestStepInDirection(t *testing.T) {
+	s1 := sirpent.Snake{Length: 3, Dead: false, Segments: make([]sirpent.SnakeSegment, 3)}
+	s1.Segments[0] = sirpent.SnakeSegment{Position: sirpent.HexagonalVector{X: 0, Y: 0}}
+	s1.Segments[1] = sirpent.SnakeSegment{Position: sirpent.HexagonalVector{X: 1, Y: 0}}
+	s1.Segments[2] = sirpent.SnakeSegment{Position: sirpent.HexagonalVector{X: 1, Y: 1}}
+
+	direction := sirpent.SOUTHWEST
+	expectedSeg0Position := sirpent.HexagonalVector{X: -1, Y: 1}
+	expectedSeg1Position := sirpent.HexagonalVector{X: 0, Y: 0}
+	expectedSeg2Position := sirpent.HexagonalVector{X: 1, Y: 0}
+	s1.StepInDirection(direction)
+	if s1.Segments[0].Position != expectedSeg0Position {
+		t.Error("Head segment in wrong updated position. Expected/actual:", expectedSeg0Position, s1.Segments[0].Position)
+	}
+	if s1.Segments[1].Position != expectedSeg1Position {
+		t.Error("Second segment in wrong updated position. Expected/actual:", expectedSeg1Position, s1.Segments[1].Position)
+	}
+	if s1.Segments[2].Position != expectedSeg2Position {
+		t.Error("Third (tail) segment in wrong updated position. Expected/actual:", expectedSeg2Position, s1.Segments[2].Position)
+	}
+}
