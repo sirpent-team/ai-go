@@ -11,20 +11,24 @@ func TestDistance(t *testing.T) {
 	v3 := sirpent.HexagonalVector{X: -3, Y: 99}
 
 	d11 := v1.Distance(v1) // Distance to self.
-	if d11.X != 0 || d11.Y != 0 {
+	expected_d11 := sirpent.HexagonalVector{X: 0, Y: 0}
+	if d11 != expected_d11 {
 		t.Error(v1, "had a non-zero distance", d11, "to itself.")
 	}
 	d12 := v1.Distance(v2)
-	if d12.X != -22 || d12.Y != 66 {
-		t.Error(v1, "had an incorrect distance", d12, "to", v2)
+	expected_d12 := sirpent.HexagonalVector{X: -22, Y: 66}
+	if d12 != expected_d12 {
+		t.Error(v1, "to", v2, "had an incorrect distance expected/actual", expected_d12, d12)
 	}
 	d13 := v1.Distance(v3)
-	if d13.X != -14 || d13.Y != 132 {
-		t.Error(v1, "had an incorrect distance", d13, "to", v3)
+	expected_d13 := sirpent.HexagonalVector{X: -14, Y: 132}
+	if d13 != expected_d13 {
+		t.Error(v1, "to", v3, "had an incorrect distance expected/actual", expected_d13, d13)
 	}
 
 	d31 := v3.Distance(v1)
-	if d31.X != -d13.X || d31.Y != -d13.Y {
+	expected_d31 := sirpent.HexagonalVector{X: -expected_d13.X, Y: -expected_d13.Y}
+	if d31 != expected_d31 {
 		t.Error(v1, "to", v3, "did not have consistent distances. d13/d31:", d13, d31)
 	}
 }
