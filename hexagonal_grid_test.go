@@ -5,6 +5,30 @@ import (
   "github.com/Taneb/sirpent"
 )
 
+func TestDistance(t *testing.T) {
+  v1 := sirpent.HexagonalVector{X: 11, Y: -33}
+  v2 := sirpent.HexagonalVector{X: -11, Y: 33}
+  v3 := sirpent.HexagonalVector{X: -3, Y: 99}
+
+  d11 := v1.Distance(v1) // Distance to self.
+  if d11.X != 0 || d11.Y != 0 {
+    t.Error(v1, "had a non-zero distance", d11, "to itself.")
+  }
+  d12 := v1.Distance(v2)
+  if d12.X != -22 || d12.Y != 66 {
+    t.Error(v1, "had an incorrect distance", d12, "to", v2)
+  }
+  d13 := v1.Distance(v3)
+  if d13.X != -14 || d13.Y != 132 {
+    t.Error(v1, "had an incorrect distance", d13, "to", v3)
+  }
+
+  d31 := v3.Distance(v1)
+  if d31.X != -d13.X || d31.Y != - d13.Y {
+    t.Error(v1, "to", v3, "did not have consistent distances. d13/d31:", d13, d31)
+  }
+}
+
 func TestNeighbours(t *testing.T) {
   v := sirpent.HexagonalVector{X: 0, Y: 0}
   var directions [6]int

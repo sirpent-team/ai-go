@@ -1,6 +1,7 @@
 package sirpent
 
 type Vector interface {
+  Distance(v2 Vector) Vector
   Neighbour(direction int) Vector
 }
 

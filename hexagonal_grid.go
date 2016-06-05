@@ -4,6 +4,7 @@ import (
   "fmt"
 )
 
+// @TODO: Wrap these in a Direction label for easy iteration?
 const (
   NORTH = iota
   NORTHEAST = iota
@@ -18,7 +19,11 @@ type HexagonalVector struct {
   Y int
 }
 
-func (v HexagonalVector) Neighbour(direction int) Vector {
+func (v HexagonalVector) Distance(v2 HexagonalVector) HexagonalVector {
+  return HexagonalVector{X: v2.X - v.X, Y: v2.Y - v.Y}
+}
+
+func (v HexagonalVector) Neighbour(direction int) HexagonalVector {
   switch direction {
   case NORTH:
     v.Y--
