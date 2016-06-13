@@ -53,6 +53,7 @@ func (v HexagonalVector) Neighbour(direction int) Vector {
 		v2.Y--
 	case SOUTHEAST:
 		v2.X++
+		v2.Y += 1 - (v.X & 1)
 	case SOUTH:
 		v2.Y++
 	case SOUTHWEST:
@@ -60,6 +61,7 @@ func (v HexagonalVector) Neighbour(direction int) Vector {
 		v2.Y++
 	case NORTHWEST:
 		v2.X--
+		v2.Y -= v.X & 1
 	default: // @TODO: Return an actual error if the direction was invalid.
 		v2.X = -1
 		v2.Y = -1

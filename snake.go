@@ -10,6 +10,12 @@ type Snake struct {
 	Segments []SnakeSegment
 }
 
+func NewSnake(start_position Vector) *Snake {
+	s := Snake{Length: 1, Dead: false, Segments: make([]SnakeSegment, 1)}
+	s.Segments[0].Position = start_position
+	return &s
+}
+
 func (s Snake) IsHeadAt(v Vector) bool {
 	return (s.Length > 0 && s.Segments[0].Position == v)
 }
