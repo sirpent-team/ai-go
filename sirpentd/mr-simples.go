@@ -1,68 +1,68 @@
 package main
 
 import (
-  "fmt"
-  "net"
-  "bufio"
-  "github.com/Taneb/sirpent"
+	"bufio"
+	"fmt"
+	"github.com/Taneb/sirpent"
+	"net"
 )
 
 type World struct {
-  G sirpent.Grid
-  Snakes []sirpent.Snake
+	G      sirpent.Grid
+	Snakes []sirpent.Snake
 }
 
 type Food struct {
-  Position sirpent.Vector
+	Position sirpent.Vector
 }
 
 func main() {
-  port := "8080"
-  ln, err := net.Listen("tcp", ":" + port)
-  if err != nil {
-    panic(fmt.Sprintf("Could not establish TCP server on port %s.", port))
-    // handle error
-  }
-  for {
-    conn, err := ln.Accept()
-    if err != nil {
-      // handle error
-    }
-    go handleConnection(conn)
-  }
+	port := "8080"
+	ln, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		panic(fmt.Sprintf("Could not establish TCP server on port %s.", port))
+		// handle error
+	}
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			// handle error
+		}
+		go handleConnection(conn)
+	}
 }
 
 func handleConnection(conn net.Conn) {
-  fmt.Fprintf(conn, "Hi.\r\n")
-  status, err := bufio.NewReader(conn).ReadString('\n')
-  if err != nil || status != "Hi back." {
-    fmt.Printf("Bad status err='%s' status='%s'\n", err, status)
-    return
-  }
+	fmt.Fprintf(conn, "Hi.\r\n")
+	status, err := bufio.NewReader(conn).ReadString('\n')
+	if err != nil || status != "Hi back." {
+		fmt.Printf("Bad status err='%s' status='%s'\n", err, status)
+		return
+	}
 
-  width, err := bufio.NewReader(conn).ReadString('\n')
-  height, err := bufio.NewReader(conn).ReadString('\n')
-  snakes_len, err := bufio.NewReader(conn).ReadString('\n')
+	width, err := bufio.NewReader(conn).ReadString('\n')
+	height, err := bufio.NewReader(conn).ReadString('\n')
+	snakes_len, err := bufio.NewReader(conn).ReadString('\n')
 
-  start_x, err := bufio.NewReader(conn).ReadString('\n')
-  start_y, err := bufio.NewReader(conn).ReadString('\n')
+	start_x, err := bufio.NewReader(conn).ReadString('\n')
+	start_y, err := bufio.NewReader(conn).ReadString('\n')
 
-  /*for {
-    status, err := bufio.NewReader(conn).ReadString('\n')
-  }
+	/*for {
+	    status, err := bufio.NewReader(conn).ReadString('\n')
+	  }
 
-  w := World{G: sirpent.HexagonalGrid{Width: 30, Height: 30}, Snakes: make([]sirpent.Snake, 1)}
+	  w := World{G: sirpent.HexagonalGrid{Width: 30, Height: 30}, Snakes: make([]sirpent.Snake, 1)}
 
-  w.Snakes[0] = *sirpent.NewSnake(sirpent.HexagonalVector{X: 1, Y: 2})
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.SOUTH)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.SOUTHEAST)
-  fmt.Println(w)*/
+	  w.Snakes[0] = *sirpent.NewSnake(sirpent.HexagonalVector{X: 1, Y: 2})
+	  fmt.Println(w)
+	  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
+	  fmt.Println(w)
+	  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
+	  fmt.Println(w)
+	  w.Snakes[0].StepInDirection(sirpent.SOUTH)
+	  fmt.Println(w)
+	  w.Snakes[0].StepInDirection(sirpent.SOUTHEAST)
+	  fmt.Println(w)*/
 }
 
 /*

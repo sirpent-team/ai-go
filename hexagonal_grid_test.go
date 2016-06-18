@@ -1,11 +1,11 @@
 package sirpent_test
 
-import (
+/*import (
 	"github.com/Taneb/sirpent"
 	"testing"
-)
+)*/
 
-func TestDistance(t *testing.T) {
+/*func TestDistance(t *testing.T) {
 	v1 := sirpent.HexagonalVector{X: 11, Y: -33}
 	v2 := sirpent.HexagonalVector{X: -11, Y: 33}
 	v3 := sirpent.HexagonalVector{X: -3, Y: 99}
@@ -76,3 +76,4 @@ func TestIsWithinBounds(t *testing.T) {
 		}
 	}
 }
+*/

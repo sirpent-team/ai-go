@@ -1,44 +1,52 @@
 package sirpent
 
-type SnakeSegment struct {
-	Position Vector
-}
-
 type Snake struct {
-	Length   int
-	Dead     bool
-	Segments []SnakeSegment
+	Segments []AxialVector
 }
 
-func NewSnake(start_position Vector) *Snake {
-	s := Snake{Length: 1, Dead: false, Segments: make([]SnakeSegment, 1)}
-	s.Segments[0].Position = start_position
-	return &s
+func NewSnake(start_position AxialVector) Snake {
+	// @TODO: Ideal capacity of a snake?
+	s := Snake{Segments: make([]AxialVector, 1)}
+	s.Segments[0] = start_position
+	return s
 }
 
-func (s Snake) IsHeadAt(v Vector) bool {
-	return (s.Length > 0 && s.Segments[0].Position == v)
+func (s Snake) IsHeadAt(av AxialVector) bool {
+	return len(s.Segments) > 0 && s.Segments[0] == av
 }
 
-func (s Snake) HasSegmentAt(v Vector) bool {
-	for i := 0; i < s.Length; i++ {
-		if s.Segments[i].Position == v {
+func (s Snake) Contains(av AxialVector) bool {
+	for i := range s.Segments {
+		if s.Segments[i] == av {
 			return true
 		}
 	}
 	return false
 }
 
-func (s Snake) HasCollidedIntoSnake(s2 Snake) bool {
-	return (s.Length > 0 && s2.HasSegmentAt(s.Segments[0].Position))
+func (s Snake) IsHeadInsideTail() bool {
+	for i := range s.Segments {
+		if i > 0 && s.Segments[0] == s.Segments[i] {
+			return true
+		}
+	}
+	return false
 }
 
-func (s *Snake) StepInDirection(direction int) {
+func (s Snake) IsHeadInsideSnake(s2 Snake) bool {
+	return len(s.Segments) > 0 && s2.Contains(s.Segments[0])
+}
+
+func (s *Snake) StepInDirection(direction Direction, grow_extra_segment bool) {
+	if grow_extra_segment {
+		s.Segments = append(s.Segments, AxialVector{})
+	}
+
 	// Move each segments to their parent location. Skip head for obvious reasons.
-	for i := s.Length - 1; i > 0; i-- {
-		s.Segments[i].Position = s.Segments[i-1].Position
+	for i := len(s.Segments) - 1; i > 0; i-- {
+		s.Segments[i] = s.Segments[i-1]
 	}
 
 	// Update head position.
-	s.Segments[0].Position = s.Segments[0].Position.Neighbour(direction)
+	s.Segments[0] = s.Segments[0].Neighbour(direction)
 }

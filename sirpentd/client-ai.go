@@ -1,21 +1,21 @@
 package main
 
 import (
-  "fmt"
-  "net"
+	"fmt"
+	"net"
 )
 
 func main() {
-  domain := "127.0.0.1"
-  port := "8080"
+	domain := "127.0.0.1"
+	port := "8080"
 
-  target := fmt.Sprintf("%s:%s", domain, port)
-  conn, err := net.Dial("tcp", target)
-  if err != nil {
-    panic(fmt.Sprintf("Could not establish connection to %s.", target))
-  }
+	target := fmt.Sprintf("%s:%s", domain, port)
+	conn, err := net.Dial("tcp", target)
+	if err != nil {
+		panic(fmt.Sprintf("Could not establish connection to %s.", target))
+	}
 
-  for {
-    fmt.Fprintf(conn, "NORTH\n")
-  }
+	for {
+		fmt.Fprintf(conn, "NORTH\n")
+	}
 }

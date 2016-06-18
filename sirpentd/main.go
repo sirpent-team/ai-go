@@ -1,135 +1,86 @@
 package main
 
 import (
-  "fmt"
-  "time"
-//  "sync"
-  "net/http"
-  "golang.org/x/net/websocket"
-  "github.com/Taneb/sirpent"
+	"fmt"
+	"time"
+	// "sync"
+	"github.com/Taneb/sirpent"
+	"github.com/satori/go.uuid"
+	"golang.org/x/net/websocket"
+	"net/http"
 )
 
 func main() {
-  //var a sirpent.Vector
-  //a = sirpent.HexagonalVector{X: 5, Y: 2}
-  //w := sirpent.World{G: sirpent.HexagonalGrid{Width: 30, Height: 30}, Players: make([]*sirpent.Player, 0)}
+	grid := &sirpent.Grid{Radius: 30, Origin: sirpent.AxialVector{Q: 0, R: 0}}
 
-  w := new(sirpent.World)
-  w.G = sirpent.HexagonalGrid{Width: 30, Height: 30}
-  w.Players = make([]*sirpent.Player, 0)
+	players := make(map[uuid.UUID]*sirpent.Player)
+	player0 := sirpent.NewPlayer("localhost:8901")
+	players[player0.ID] = player0
+	player1 := sirpent.NewPlayer("localhost:8902")
+	players[player1.ID] = player1
 
-  p := sirpent.NewPlayer("localhost:8901")
-  p.S = sirpent.NewSnake(sirpent.HexagonalVector{X: 5, Y: 5})
-  //p.S.Segments = append(p.S.Segments, sirpent.SnakeSegment{Position: sirpent.HexagonalVector{X: 5, Y: 4}})
-  err := p.ConnectToPlayer()
-  if err == nil {
-    w.Players = append(w.Players, p)
-  }
+	game := sirpent.NewGame(grid, players)
 
-  /*w.Snakes[0] = *sirpent.NewSnake(sirpent.HexagonalVector{X: 1, Y: 2})
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.NORTHEAST)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.SOUTH)
-  fmt.Println(w)
-  w.Snakes[0].StepInDirection(sirpent.SOUTHEAST)
-  fmt.Println(w)*/
-  go ws(w)
+	// Connect to players.
+	// @TODO: Prevent waiting for network N times, using sync.WaitGroup and Goroutines.
+	for _, player := range game.Players {
+		err := player.ConnectToPlayer()
+		if err != nil {
+			// @TODO: Decide how to handle connection unestablished.
+			panic("Player connection failed.")
+		}
+	}
+	// @TODO: Tell players about game, grid etc!
 
-  for {
-    tick(w)
-    time.Sleep(1000 * time.Millisecond)
-  }
+	// @TODO: Basic setup complete; start API server.
+	//        Expand upon api.go
+	api := sirpent.API{}
+
+	go func() {
+		http.Handle("/worlds/live", websocket.Handler(func(ws *websocket.Conn) {
+			api.Websockets = append(api.Websockets, ws)
+			// @TODO: Keep Websocket alive without an infinite loop.
+			// Use channels properly?
+			for {
+			}
+		}))
+		err := http.ListenAndServe(":8080", nil)
+		if err != nil {
+			panic("ListenAndServe: " + err.Error())
+		}
+	}()
+
+	// Begin the game.
+	for {
+		//if game.TickCount%1000 == 0 {
+		fmt.Printf("Tick %d\n", game.TickCount)
+		//}
+
+		latest_state := game.Tick()
+		// @TODO: Dead players should stop being ticked, and thus need to iterate over plays not players here.
+		/*for player_id, player := range game.Players {
+			fmt.Printf("player id %s, current snake %+v\n", player_id, latest_state.Plays[player_id].CurrentSnake)
+			fmt.Printf("player %+v, player state %+v\n", player, latest_state.Plays[player_id])
+		}
+		fmt.Printf("%+v\n", latest_state)*/
+
+		for i := range api.Websockets {
+			err := websocket.JSON.Send(api.Websockets[i], latest_state)
+			if err != nil {
+				fmt.Printf("%+v\n", err)
+			}
+			/*for _, player_state := range latest_state.Plays {
+				fmt.Printf("%d\n", i)
+				//fmt.Fprintf(w.Websockets[i], w.Players[j].S, "")
+				websocket.JSON.Send(api.Websockets[i], player_state.CurrentSnake)
+			}*/
+			//fmt.Fprintf(w.Websockets[i], "Test %s\r\n", "abc")
+		}
+
+		if !latest_state.HasLivingPlayers() {
+			break
+		}
+
+		time.Sleep(300 * time.Millisecond)
+	}
 }
-
-func ws(w *sirpent.World) {
-  http.Handle("/worlds/live", websocket.Handler(func(ws *websocket.Conn) {
-    w.Websockets = append(w.Websockets, ws)
-    for {}
-  }))
-  err := http.ListenAndServe(":8080", nil)
-  if err != nil {
-    panic("ListenAndServe: " + err.Error())
-  }
-}
-
-func tick(w *sirpent.World) {
-  fmt.Println("Tick")
-
-  //var wg sync.WaitGroup
-  for i := range w.Players {
-    player_tick(w, w.Players[i])
-  }
-
-  // Detect collisions.
-  // @TODO: Wait for all players to have moved.
-  /*for i := range w.Players {
-    for j := range w.Players {
-      //has_collided := w.Players[i].S.HasCollidedIntoSnake(*w.Players[j].S)
-      //head_on_collided := w.Players[i].S.IsHeadAt(w.Players[j].S.Segments[0].Position)
-    }
-  }*/
-
-  // Notify dead players. (Close connections.)
-
-  // Broadcast new world on websocket.
-  for i := range w.Websockets {
-    //fmt.Fprintf(w.Websockets[i], "Test %s\r\n", "abc")
-    for j := range w.Players {
-      //fmt.Fprintf(w.Websockets[i], w.Players[j].S, "")
-      websocket.JSON.Send(w.Websockets[i], w.Players[j].S)
-    }
-    //fmt.Fprintf(w.Websockets[i], "Test %s\r\n", "abc")
-  }
-}
-
-func player_tick(w *sirpent.World, p *sirpent.Player) {
-  // Send World to player as JSON.
-  p.SendWorld(w)
-
-  // As N goroutines, get move from all live players.
-  direction, err := p.ReceiveMove()
-  if err != nil {
-    // Kill the player.
-    fmt.Printf("ERROR: %s\n", err)
-  } else {
-    // Apply move.
-    fmt.Printf("%s -> ", p.S.Segments[0])
-    p.S.StepInDirection(direction)
-    fmt.Printf("%s\n", p.S.Segments[0])
-  }
-}
-
-/*
-messages := make(chan int)
-    var wg sync.WaitGroup
-
-    // you can also add these one at
-    // a time if you need to
-
-    wg.Add(3)
-    go func() {
-        defer wg.Done()
-        time.Sleep(time.Second * 3)
-        messages <- 1
-    }()
-    go func() {
-        defer wg.Done()
-        time.Sleep(time.Second * 2)
-        messages <- 2
-    }()
-    go func() {
-        defer wg.Done()
-        time.Sleep(time.Second * 1)
-        messages <- 3
-    }()
-    go func() {
-        for i := range messages {
-            fmt.Println(i)
-        }
-    }()
-
-    wg.Wait()
-*/
