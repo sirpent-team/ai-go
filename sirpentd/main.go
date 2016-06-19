@@ -18,6 +18,20 @@ func main() {
 	players[player0.ID] = player0
 	player1 := sirpent.NewPlayer("localhost:8902")
 	players[player1.ID] = player1
+	/*player2 := sirpent.NewPlayer("localhost:8903")
+	players[player2.ID] = player2
+	player3 := sirpent.NewPlayer("localhost:8904")
+	players[player3.ID] = player3
+	player4 := sirpent.NewPlayer("localhost:8905")
+	players[player4.ID] = player4
+	player5 := sirpent.NewPlayer("localhost:8906")
+	players[player5.ID] = player5
+	player6 := sirpent.NewPlayer("localhost:8907")
+	players[player6.ID] = player6
+	player7 := sirpent.NewPlayer("localhost:8908")
+	players[player7.ID] = player7
+	player8 := sirpent.NewPlayer("localhost:8909")
+	players[player8.ID] = player8*/
 
 	game := sirpent.NewGame(grid, players)
 
@@ -37,7 +51,15 @@ func main() {
 	api := sirpent.API{}
 
 	go func() {
-		http.Handle("/worlds/live", websocket.Handler(func(ws *websocket.Conn) {
+		http.Handle("/", http.FileServer(http.Dir("webroot")))
+		http.Handle("/worlds/live.json", websocket.Handler(func(ws *websocket.Conn) {
+			defer func() {
+				err := ws.Close()
+				if err != nil {
+					fmt.Printf("websocket.Close err=%s\n", err)
+				}
+			}
+
 			api.Websockets = append(api.Websockets, ws)
 			// @TODO: Keep Websocket alive without an infinite loop.
 			// Use channels properly?
@@ -52,35 +74,21 @@ func main() {
 
 	// Begin the game.
 	for {
-		//if game.TickCount%1000 == 0 {
 		fmt.Printf("Tick %d\n", game.TickCount)
-		//}
 
 		latest_state := game.Tick()
-		// @TODO: Dead players should stop being ticked, and thus need to iterate over plays not players here.
-		/*for player_id, player := range game.Players {
-			fmt.Printf("player id %s, current snake %+v\n", player_id, latest_state.Plays[player_id].CurrentSnake)
-			fmt.Printf("player %+v, player state %+v\n", player, latest_state.Plays[player_id])
-		}
-		fmt.Printf("%+v\n", latest_state)*/
 
 		for i := range api.Websockets {
 			err := websocket.JSON.Send(api.Websockets[i], latest_state)
 			if err != nil {
 				fmt.Printf("%+v\n", err)
 			}
-			/*for _, player_state := range latest_state.Plays {
-				fmt.Printf("%d\n", i)
-				//fmt.Fprintf(w.Websockets[i], w.Players[j].S, "")
-				websocket.JSON.Send(api.Websockets[i], player_state.CurrentSnake)
-			}*/
-			//fmt.Fprintf(w.Websockets[i], "Test %s\r\n", "abc")
 		}
 
 		if !latest_state.HasLivingPlayers() {
 			break
 		}
 
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
