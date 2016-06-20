@@ -2,7 +2,6 @@ package sirpent
 
 import (
 	crypto_rand "crypto/rand"
-	"github.com/satori/go.uuid"
 	"math/big"
 )
 
@@ -45,8 +44,4 @@ func crypto_int(lower int, upper int) int {
 	}
 	n := int(n_big.Int64())
 	return n + lower
-}
-
-func NewUUID() uuid.UUID {
-	return uuid.NewV4()
 }

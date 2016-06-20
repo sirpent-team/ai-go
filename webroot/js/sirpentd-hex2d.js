@@ -25,6 +25,7 @@ function SirpentHex2DGame(game_id, canvas_id) {
       var player_state = game_state.Plays[player_id]
       this.drawSnake(player_state.CurrentSnake)
     }
+    this.drawHexagon(game_state.Food, "rgb(200, 0, 0)", "rgb(120, 0, 0)")
   }.bind(this)
   //ws.send(data)
 }
@@ -99,7 +100,7 @@ SirpentHex2DGame.prototype.axialToCube = function (axial) {
 SirpentHex2DGame.prototype.drawSnake = function (snake) {
   var i
   for (i = 0; i < snake["Segments"].length; i++) {
-    var color = (i == 0) ? "rgb(0, 120, 0)" : "rgb(0, 255, 0)"
+    var color = (i == 0) ? "rgb(0, 120, 0)" : "rgb(0, 200, 0)"
     this.drawHexagon(snake["Segments"][i], "rgb(0, 120, 0)", color)
   }
 }

@@ -4,9 +4,9 @@ package sirpent
 
 import "fmt"
 
-const _Direction_name = "NorthNorthEastSouthEastSouthSouthWestNorthWest"
+const _Direction_name = "NorthEastEastSouthEastSouthWestWestNorthWest"
 
-var _Direction_index = [...]uint8{0, 5, 14, 23, 28, 37, 46}
+var _Direction_index = [...]uint8{0, 9, 13, 22, 31, 35, 44}
 
 func (i Direction) String() string {
 	if i < 0 || i >= Direction(len(_Direction_index)-1) {

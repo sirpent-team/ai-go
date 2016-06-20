@@ -5,7 +5,6 @@ import (
 	"time"
 	// "sync"
 	"github.com/Taneb/sirpent"
-	"github.com/satori/go.uuid"
 	"golang.org/x/net/websocket"
 	"net/http"
 )
@@ -13,7 +12,7 @@ import (
 func main() {
 	grid := &sirpent.Grid{Radius: 30, Origin: sirpent.AxialVector{Q: 0, R: 0}}
 
-	players := make(map[uuid.UUID]*sirpent.Player)
+	players := make(map[sirpent.UUID]*sirpent.Player)
 	player0 := sirpent.NewPlayer("localhost:8901")
 	players[player0.ID] = player0
 	player1 := sirpent.NewPlayer("localhost:8902")
@@ -41,7 +40,8 @@ func main() {
 		err := player.ConnectToPlayer()
 		if err != nil {
 			// @TODO: Decide how to handle connection unestablished.
-			panic("Player connection failed.")
+			fmt.Println("Player connection failed.")
+			panic(err)
 		}
 	}
 	// @TODO: Tell players about game, grid etc!
@@ -58,12 +58,13 @@ func main() {
 				if err != nil {
 					fmt.Printf("websocket.Close err=%s\n", err)
 				}
-			}
+			}()
 
 			api.Websockets = append(api.Websockets, ws)
 			// @TODO: Keep Websocket alive without an infinite loop.
 			// Use channels properly?
 			for {
+				time.Sleep(1 * time.Second)
 			}
 		}))
 		err := http.ListenAndServe(":8080", nil)
@@ -75,20 +76,25 @@ func main() {
 	// Begin the game.
 	for {
 		fmt.Printf("Tick %d\n", game.TickCount)
-
 		latest_state := game.Tick()
 
 		for i := range api.Websockets {
-			err := websocket.JSON.Send(api.Websockets[i], latest_state)
-			if err != nil {
-				fmt.Printf("%+v\n", err)
-			}
+			go func(websocket_index int) {
+				api.Websockets[websocket_index].SetDeadline(time.Now().Add(5 * time.Second))
+				err := websocket.JSON.Send(api.Websockets[websocket_index], latest_state)
+				if err != nil {
+					fmt.Printf("%+v\n", err)
+					// @TODO: Locking needed?
+					api.Websockets = append(api.Websockets[:websocket_index], api.Websockets[websocket_index+1:]...)
+				}
+			}(i)
 		}
 
 		if !latest_state.HasLivingPlayers() {
+			fmt.Printf("(NoLivingPlayers)\n")
 			break
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
