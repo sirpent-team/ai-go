@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"github.com/Taneb/sirpent"
+	"github.com/sirpent-team/sirpent-go"
 	"net"
 )
 

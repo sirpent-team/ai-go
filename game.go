@@ -45,10 +45,10 @@ func NewGame(grid *Grid, players map[UUID]*Player) *Game {
 
 func (game *Game) NewGameState() *GameState {
 	return &GameState{
-		ID: game.TickCount,
+		ID:           game.TickCount,
 		RenderedGrid: *game.Grid,
-		Plays: make(map[UUID]*PlayerState),
-		Food:  game.Grid.CryptoRandomCell(),
+		Plays:        make(map[UUID]*PlayerState),
+		Food:         game.Grid.CryptoRandomCell(),
 	}
 }
 
@@ -80,10 +80,10 @@ type GameState struct {
 
 func (gs *GameState) Successor(game *Game) *GameState {
 	gs2 := &GameState{
-		ID: game.TickCount,
+		ID:           game.TickCount,
 		RenderedGrid: *game.Grid,
-		Plays: make(map[UUID]*PlayerState),
-		Food:  gs.Food,
+		Plays:        make(map[UUID]*PlayerState),
+		Food:         gs.Food,
 	}
 
 	for player_id, player_state := range gs.Plays {

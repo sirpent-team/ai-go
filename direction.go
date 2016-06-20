@@ -1,10 +1,10 @@
 package sirpent
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
-	"encoding/json"
 )
 
 type Direction int
@@ -34,14 +34,14 @@ func DirectionByString(d string) (Direction, error) {
 }
 
 func (d Direction) MarshalJSON() ([]byte, error) {
-  return json.Marshal(d.String())
+	return json.Marshal(d.String())
 }
 
 func (d *Direction) UnmarshalJSON(b []byte) error {
 	var direction_str string
-  err := json.Unmarshal(b, &direction_str)
-  if err == nil {
-  	var d2 Direction
+	err := json.Unmarshal(b, &direction_str)
+	if err == nil {
+		var d2 Direction
 		d2, err = DirectionByString(direction_str)
 		*d = d2
 	}

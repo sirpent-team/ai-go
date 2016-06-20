@@ -3,9 +3,9 @@ package sirpent
 import (
 	"encoding/json"
 	//"errors"
+	"fmt"
 	"net"
 	"time"
-	"fmt"
 )
 
 type Player struct {

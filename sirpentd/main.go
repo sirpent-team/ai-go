@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 	// "sync"
-	"github.com/Taneb/sirpent"
+	"github.com/sirpent-team/sirpent-go"
 	"golang.org/x/net/websocket"
 	"net/http"
 )

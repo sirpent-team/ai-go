@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Taneb/sirpent"
+	"github.com/sirpent-team/sirpent-go"
 )
 
 func main() {

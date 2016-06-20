@@ -1,7 +1,7 @@
 package sirpent_test
 
 import (
-	"github.com/Taneb/sirpent"
+	"github.com/sirpent-team/sirpent-go"
 	"testing"
 )
 

@@ -1,13 +1,13 @@
 package main
 
 import (
+	crypto_rand "crypto/rand"
+	"encoding/json"
 	"fmt"
+	"github.com/sirpent-team/sirpent-go"
+	"math/big"
 	"net"
 	"os"
-	"encoding/json"
-	"github.com/Taneb/sirpent"
-	"math/big"
-	crypto_rand "crypto/rand"
 	//"time"
 )
 
@@ -31,7 +31,7 @@ func main() {
 
 type PlayerClient struct {
 	//ID sirpent.UUID
-	Socket net.Conn
+	Socket  net.Conn
 	Encoder *json.Encoder
 	Decoder *json.Decoder
 }
@@ -95,7 +95,7 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		fmt.Println(direction)
-		err = pc.Encoder.Encode(direction)//sirpent.SouthEast)
+		err = pc.Encoder.Encode(direction) //sirpent.SouthEast)
 		if err != nil {
 			fmt.Println(err)
 			return
