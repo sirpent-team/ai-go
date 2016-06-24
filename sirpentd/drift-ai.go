@@ -65,6 +65,14 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("player ID = %s\n", player_id)
 
+	var hex_grid sirpent.HexHexGrid
+	err = pc.Decoder.Decode(&hex_grid)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("Hex Grid = %s\n", hex_grid)
+
 	for {
 		var gs sirpent.GameState
 		err = pc.Decoder.Decode(&gs)
@@ -73,7 +81,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 		for player_id, player_state := range gs.Plays {
-			fmt.Printf("( player_id=%s segments=%+v )\n", player_id, player_state.CurrentSnake.Segments)
+			fmt.Printf("( player_id=%s snake=%+v )\n", player_id, player_state.Snake)
 		}
 
 		var direction sirpent.Direction
@@ -81,8 +89,8 @@ func handleConnection(conn net.Conn) {
 			direction_index := crypto_int(0, len(sirpent.Directions()))
 			direction = sirpent.Direction(direction_index)
 
-			snake := gs.Plays[player_id].CurrentSnake
-			head := snake.Segments[0]
+			snake := gs.Plays[player_id].Snake
+			head := snake[0]
 			//growing := head == gs.Food
 			directed_head := head.Neighbour(direction)
 			// @TODO: Somehow exactly 1 snake dies quickly, by moving onto their first tail segment.
@@ -90,7 +98,7 @@ func handleConnection(conn net.Conn) {
 			// gets past these checks I do not know. It almost makes more sense if the AI has incorrect
 			// information on its own snake but the player id in these cases *is* correct.
 			fmt.Printf("snake=%+v directed_head=%+v\n", snake, directed_head)
-			if !snake.Contains(directed_head) && gs.RenderedGrid.IsWithinBounds(directed_head) {
+			if !snake.TailContains(directed_head) && hex_grid.IsWithinBounds(directed_head) {
 				break
 			}
 		}

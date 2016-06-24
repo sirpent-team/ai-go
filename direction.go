@@ -2,7 +2,6 @@ package sirpent
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -19,6 +18,14 @@ const (
 	NorthWest
 )
 
+type DirectionError struct {
+	DirectionValue string
+}
+
+func (e DirectionError) Error() string {
+	return fmt.Sprintf("Direction '%s' not found.", e.DirectionValue)
+}
+
 func Directions() []Direction {
 	return []Direction{NorthEast, East, SouthEast, SouthWest, West, NorthWest}
 }
@@ -30,7 +37,7 @@ func DirectionByString(d string) (Direction, error) {
 			return directions[i], nil
 		}
 	}
-	return NorthEast, errors.New(fmt.Sprintf("Direction '%s' not found.", d))
+	return NorthEast, DirectionError{DirectionValue: d}
 }
 
 func (d Direction) MarshalJSON() ([]byte, error) {

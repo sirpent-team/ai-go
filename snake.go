@@ -1,52 +1,65 @@
 package sirpent
 
-type Snake struct {
-	Segments []AxialVector
+import (
+	"fmt"
+)
+
+type CollidedWithPlayerError struct {
+	CollidedWithPlayerID UUID
 }
 
-func NewSnake(start_position AxialVector) Snake {
+func (e CollidedWithPlayerError) Error() string {
+	return fmt.Sprintf("Collided with player ID '%s'.", e.CollidedWithPlayerID)
+}
+
+type CollidedWithBoundsError struct{}
+
+func (e CollidedWithBoundsError) Error() string {
+	return fmt.Sprintf("Collided with bounds.")
+}
+
+type Snake []HexVector
+
+func NewSnake(start_position HexVector) Snake {
 	// @TODO: Ideal capacity of a snake?
-	s := Snake{Segments: make([]AxialVector, 1)}
-	s.Segments[0] = start_position
+	s := make([]HexVector, 1)
+	s[0] = start_position
 	return s
 }
 
-func (s Snake) IsHeadAt(av AxialVector) bool {
-	return len(s.Segments) > 0 && s.Segments[0] == av
+// Prevent updating the slice of the previous snake.
+func (s Snake) Copy() Snake {
+	s2 := make([]HexVector, len(s))
+	copy(s2, s)
+	return s2
 }
 
-func (s Snake) Contains(av AxialVector) bool {
-	for i := range s.Segments {
-		if s.Segments[i] == av {
+func (s Snake) Move(direction Direction, grow_extra_segment bool) Snake {
+	s2 := s.Copy()
+	// Unless keeping an extra segment, discard final segment.
+	if !grow_extra_segment {
+		s2 = s2[:len(s)-1]
+	}
+	// Prepend the new, moved head.
+	s2 = append(Snake{s[0].Neighbour(direction)}, s2...)
+
+	return s2
+}
+
+// Collision detection.
+func (s Snake) TailContains(av HexVector) bool {
+	for i := 1; i < len(s); i++ {
+		if s[i] == av {
 			return true
 		}
 	}
 	return false
 }
 
-func (s Snake) IsHeadInsideTail() bool {
-	for i := range s.Segments {
-		if i > 0 && s.Segments[0] == s.Segments[i] {
-			return true
-		}
-	}
-	return false
+func (s Snake) HeadIntersects(s2 Snake) bool {
+	return s2.TailContains(s[0])
 }
 
-func (s Snake) IsHeadInsideSnake(s2 Snake) bool {
-	return len(s.Segments) > 0 && s2.Contains(s.Segments[0])
-}
-
-func (s *Snake) StepInDirection(direction Direction, grow_extra_segment bool) {
-	if grow_extra_segment {
-		s.Segments = append(s.Segments, AxialVector{})
-	}
-
-	// Move each segments to their parent location. Skip head for obvious reasons.
-	for i := len(s.Segments) - 1; i > 0; i-- {
-		s.Segments[i] = s.Segments[i-1]
-	}
-
-	// Update head position.
-	s.Segments[0] = s.Segments[0].Neighbour(direction)
+func (s Snake) HeadIntersectsSelf() bool {
+	return s.HeadIntersects(s)
 }

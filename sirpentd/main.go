@@ -10,14 +10,14 @@ import (
 )
 
 func main() {
-	grid := &sirpent.Grid{Radius: 30, Origin: sirpent.AxialVector{Q: 0, R: 0}}
+	grid := sirpent.NewHexHexGrid(20)
 
 	players := make(map[sirpent.UUID]*sirpent.Player)
 	player0 := sirpent.NewPlayer("localhost:8901")
 	players[player0.ID] = player0
-	player1 := sirpent.NewPlayer("localhost:8902")
+	/*player1 := sirpent.NewPlayer("localhost:8902")
 	players[player1.ID] = player1
-	/*player2 := sirpent.NewPlayer("localhost:8903")
+	player2 := sirpent.NewPlayer("localhost:8903")
 	players[player2.ID] = player2
 	player3 := sirpent.NewPlayer("localhost:8904")
 	players[player3.ID] = player3
@@ -37,7 +37,7 @@ func main() {
 	// Connect to players.
 	// @TODO: Prevent waiting for network N times, using sync.WaitGroup and Goroutines.
 	for _, player := range game.Players {
-		err := player.ConnectToPlayer()
+		err := player.Connect(game)
 		if err != nil {
 			// @TODO: Decide how to handle connection unestablished.
 			fmt.Println("Player connection failed.")
@@ -60,7 +60,10 @@ func main() {
 				}
 			}()
 
+			// @TODO: Error handling.
+			_ = websocket.JSON.Send(ws, game.Grid)
 			api.Websockets = append(api.Websockets, ws)
+
 			// @TODO: Keep Websocket alive without an infinite loop.
 			// Use channels properly?
 			for {
@@ -79,7 +82,7 @@ func main() {
 		latest_state := game.Tick()
 
 		for i := range api.Websockets {
-			go func(websocket_index int) {
+			func(websocket_index int) {
 				api.Websockets[websocket_index].SetDeadline(time.Now().Add(5 * time.Second))
 				err := websocket.JSON.Send(api.Websockets[websocket_index], latest_state)
 				if err != nil {
@@ -95,6 +98,6 @@ func main() {
 			break
 		}
 
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(75 * time.Millisecond)
 	}
 }
