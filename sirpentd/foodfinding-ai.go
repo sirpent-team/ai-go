@@ -129,7 +129,19 @@ func pathfind(grid sirpent.HexGrid, snake sirpent.Snake, start sirpent.HexVector
 
 	var current sirpent.HexVector
 	for len(frontier) > 0 {
-		current, frontier = frontier[len(frontier)-1], frontier[:len(frontier)-1]
+		lowest_expected_cost := 0
+		lowest_expected_cost_index := 0
+		for i := 0; i < len(frontier); i++ {
+			current := frontier[i]
+			expected_cost := cost_to[current] + current.Distance(end)
+			if expected_cost < lowest_expected_cost {
+				lowest_expected_cost = expected_cost
+				lowest_expected_cost_index = i
+			}
+		}
+		current = frontier[lowest_expected_cost_index]
+		frontier = append(frontier[:lowest_expected_cost_index], frontier[lowest_expected_cost_index+1:]...)
+		//current, frontier = frontier[len(frontier)-1], frontier[:len(frontier)-1]
 		//fmt.Printf("current=%+v\n", current)
 
 		directions := sirpent.Directions()
