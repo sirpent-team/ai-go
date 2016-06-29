@@ -42,6 +42,12 @@ function SirpentHex2DGame(game_id, canvas_id) {
     }
     this.drawHexagon(game_state.Food, "rgb(200, 0, 0)", "rgb(120, 0, 0)")
   }.bind(this)
+  ws.onclose = function(e) {
+    console.log("onclose!")
+    setTimeout(function() {
+      window.location.reload()
+    }, 2500)
+  }
   //ws.send(data)
 }
 

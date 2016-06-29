@@ -89,14 +89,23 @@ func handleConnection(conn net.Conn) {
 		head := snake[0]
 
 		var path []sirpent.Direction
+		var direction sirpent.Direction
 		path, err = pathfind(hex_grid, snake, head, gs.Food, gs.Food)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		fmt.Printf("head=%+v food=%+v path=%+v\n", head, gs.Food, path)
 
-		direction := path[len(path)-1]
+		if err == nil && len(path) > 0 {
+			direction = path[len(path)-1]
+		} else {
+			directions := sirpent.Directions()
+			for i := range directions {
+				direction = directions[i]
+				neighbour := head.Neighbour(direction)
+				grow_extra_segment := gs.Food == neighbour
+				neighbour_snake := snake.Move(direction, grow_extra_segment)
+				if hex_grid.IsWithinBounds(neighbour) && !neighbour_snake.HeadIntersectsSelf() {
+					break
+				}
+			}
+		}
 
 		/*var direction sirpent.Direction
 		directions := sirpent.Directions()
