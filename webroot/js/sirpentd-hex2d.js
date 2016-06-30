@@ -115,6 +115,17 @@ SirpentHex2DGame.prototype.drawHexagon = function (hex_vector, strokeColor, fill
   }
 }
 
+SirpentHex2DGame.prototype.writeOnHexagon = function (hex_vector, fillColor, text) {
+  var canvas_x = this.width / 2 + this.radius * Math.sqrt(3) * (hex_vector.X + hex_vector.Z/2)
+  var canvas_y = this.height / 2 + this.radius * 1.5 * hex_vector.Z
+
+  this.context.textBaseline = "middle"
+  this.context.textAlign = "center"
+  this.context.fillStyle = fillColor
+  this.context.font = "bold 13px Helvetica"
+  this.context.fillText(text, canvas_x, canvas_y)
+}
+
 SirpentHex2DGame.prototype.axialToCube = function (axial) {
   return {"X": axial["Q"], "Z": axial["R"], "Y": -axial["Q"] -axial["R"]}
 }
@@ -125,6 +136,7 @@ SirpentHex2DGame.prototype.drawPlayerSnake = function (player) {
     var r = (player["Alive"]) ? 0 : 255
     var color = (i == 0) ? "rgb(" + r + ", 120, 0)" : "rgb(" + r + ", 200, 0)"
     this.drawHexagon(player["Snake"][i], "rgb(" + r + ", 120, 0)", color)
+    this.writeOnHexagon(player["Snake"][i], "rgb(255, 255, 255)", i)
   }
 }
 
