@@ -13,6 +13,7 @@ function SirpentHex2DGame(game_id, canvas_id) {
   }
 
   var grid = false
+  var latest_player_states = null
   var ws = new WebSocket(websocket_url_from_relative("/worlds/live.json"))
   ws.onmessage = function(e) {
     var game_state = JSON.parse(event.data)
@@ -32,6 +33,7 @@ function SirpentHex2DGame(game_id, canvas_id) {
 
     this.clear()
     this.drawHexagons()
+    latest_player_states = game_state.plays
     for (player_id in game_state.plays) {
       var player_state = game_state.plays[player_id]
       this.drawPlayerState(player_state)
@@ -39,9 +41,12 @@ function SirpentHex2DGame(game_id, canvas_id) {
     this.drawHexagon(game_state.food, "rgb(200, 0, 0)", "rgb(120, 0, 0)")
   }.bind(this)
   ws.onclose = function(e) {
-    console.log("onclose!")
+    for (player_id in latest_player_states) {
+      console.log(latest_player_states[player_id].snake.length)
+    }
     setTimeout(function() {
-      window.location.reload()
+      //window.location.reload()
+      new SirpentHex2DGame(game_id, canvas_id)
     }, 2500)
   }
   //ws.send(data)
