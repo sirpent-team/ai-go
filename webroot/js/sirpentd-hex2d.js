@@ -5,19 +5,15 @@ function SirpentHex2DGame(game_id, canvas_id) {
   this.width = this.canvas.width
   this.height = this.canvas.height
 
-  /*this.hexagon_rings = 30
-  this.hexagons_across = this.hexagon_rings * 2 + 1
-
-  // The 0.1 discount is to leave a tiny bit of a border.
-  this.radius = Math.min(
-    this.width / (this.hexagons_across * Math.sqrt(3)),
-    this.height / (this.hexagons_across * 1.5 + 0.5)
-  ) - 0.1*/
-
-  //this.drawHexagons()
+  // Assemble a Websocket URL from a relative path on this server.
+  // http://stackoverflow.com/a/20161536
+  var websocket_url_from_relative = function(s) {
+    var l = window.location
+    return ((l.protocol === "https:") ? "wss://" : "ws://") + l.host + s
+  }
 
   var grid = false
-  var ws = new WebSocket("ws://localhost:8080/worlds/live.json")
+  var ws = new WebSocket(websocket_url_from_relative("/worlds/live.json"))
   ws.onmessage = function(e) {
     var game_state = JSON.parse(event.data)
 
