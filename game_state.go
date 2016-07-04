@@ -89,9 +89,9 @@ func (gs *GameState) HasLivingPlayers() bool {
 
 func (gs GameState) MarshalJSON() ([]byte, error) {
 	gs_for_json := struct {
-		ID    uint
-		Plays map[string]PlayerState
-		Food  HexVector
+		ID    uint                   `json:"id"`
+		Plays map[string]PlayerState `json:"plays"`
+		Food  HexVector              `json:"food"`
 	}{
 		ID:    uint(gs.ID),
 		Plays: make(map[string]PlayerState),
@@ -107,9 +107,9 @@ func (gs GameState) MarshalJSON() ([]byte, error) {
 
 func (gs *GameState) UnmarshalJSON(b []byte) error {
 	gs_for_json := struct {
-		ID    uint
-		Plays map[string]PlayerState
-		Food  HexVector
+		ID    uint                   `json:"id"`
+		Plays map[string]PlayerState `json:"plays"`
+		Food  HexVector              `json:"food"`
 	}{}
 
 	err := json.Unmarshal(b, &gs_for_json)

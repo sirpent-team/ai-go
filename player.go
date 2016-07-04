@@ -5,28 +5,28 @@ import (
 )
 
 type Player struct {
-	ID UUID
+	ID UUID `json:"id"`
 	// Address to open a TCP socket to.
-	ServerAddress string
-	connection    *jsonSocket
+	server_address string
+	connection     *jsonSocket
 	// Is the Player alive after the most recent tick?
-	Alive bool
+	Alive bool `json:"alive"`
 	// What killed the player?
-	DiedFrom CauseOfDeath
+	DiedFrom CauseOfDeath `json:"died_from"`
 }
 
 func NewPlayer(server_address string) *Player {
 	// @TODO: Ensure CauseOfDeath will deny every cause of death unless modified.
 	return &Player{
-		ID:            NewUUID(),
-		ServerAddress: server_address,
-		connection:    nil,
-		Alive:         true,
+		ID:             NewUUID(),
+		server_address: server_address,
+		connection:     nil,
+		Alive:          true,
 	}
 }
 
 func (p *Player) Connect(game *Game) error {
-	connection, err := newJsonSocket(p.ServerAddress, time.Duration(5*time.Second))
+	connection, err := newJsonSocket(p.server_address, time.Duration(5*time.Second))
 	if err != nil {
 		p.Alive = false
 		p.DiedFrom.HandleError(err)

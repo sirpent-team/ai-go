@@ -5,14 +5,14 @@ import (
 )
 
 type Game struct {
-	ID   UUID
-	Grid HexGrid
+	ID   UUID    `json:"id"`
+	Grid HexGrid `json:"grid"`
 	// All players in this game.
-	Players map[UUID]*Player
+	Players map[UUID]*Player `json:"players"`
 	// Most recent tick number.
-	TickCount TickID
+	TickCount TickID `json:"tick_count"`
 	// Game state for all (loaded) ticks.
-	Ticks map[TickID]*GameState
+	Ticks map[TickID]*GameState `json:"ticks"`
 }
 
 func NewGame(grid HexGrid, players map[UUID]*Player) *Game {

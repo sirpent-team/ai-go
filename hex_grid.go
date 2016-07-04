@@ -7,7 +7,7 @@ type HexGrid interface {
 }
 
 type HexHexGrid struct {
-	Rings int
+	Rings int `json:"rings"`
 }
 
 func NewHexHexGrid(rings int) HexGrid {

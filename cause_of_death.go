@@ -7,18 +7,19 @@ import (
 // Useful for debugging and statistics.
 type CauseOfDeath struct {
 	// Death error.
-	Err error
+	Err error `json:"err"`
 	// Tick that the player died in.
-	TimeOfDeath TickID
+	// @TODO: Implement setting this.
+	//DiedAt TickID `json:"died_at"`
 	// Did the player died because the connection to their server dropped or timed out?
-	SocketProblem bool
-	SocketTimeout bool
+	SocketProblem bool `json:"socket_problem"`
+	SocketTimeout bool `json:"socket_timeout"`
 	// Did the player die because they specified an unrecognised direction?
-	InvalidMove bool
+	InvalidMove bool `json:"invalid_move"`
 	// Did the player die because they collided with a Player (including themself)? Or nil.
-	CollisionWithPlayerID *UUID
+	CollisionWithPlayerID *UUID `json:"collision_with_player"`
 	// Did the player die because they went beyond the boundaries of the world?
-	CollidedWithBounds bool
+	CollidedWithBounds bool `json:"collided_with_bounds"`
 }
 
 func (cod *CauseOfDeath) HandleError(err error) {

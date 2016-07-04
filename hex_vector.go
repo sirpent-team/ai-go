@@ -5,7 +5,9 @@ import (
 )
 
 type HexVector struct {
-	X, Y, Z int
+	X int `json:"x"`
+	Y int `json:"y"`
+	Z int `json:"z"`
 }
 
 func (v HexVector) Distance(v2 HexVector) int {

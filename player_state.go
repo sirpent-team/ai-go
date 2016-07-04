@@ -1,19 +1,18 @@
 package sirpent
 
 import (
-	"encoding/json"
 	//"errors"
 	"fmt"
 )
 
 type PlayerState struct {
-	Player *Player
+	Player *Player `json:"player"`
 	// Player-chosen Direction this tick.
-	Move Direction
+	Move Direction `json:"move"`
 	// Player alive after this tick?
-	Alive bool
+	Alive bool `json:"alive"`
 	// The current state of the snake.
-	Snake Snake
+	Snake Snake `json:"snake"`
 	// Food item eaten this tick.
 	//EatenFood *Food
 }
@@ -49,40 +48,4 @@ func (ps PlayerState) Successor(gs *GameState) (*PlayerState, error) {
 	fmt.Printf("next snake=%+v\n", ps2.Snake)
 
 	return ps2, err
-}
-
-func (ps PlayerState) MarshalJSON() ([]byte, error) {
-	ps_for_json := struct {
-		PlayerID UUID
-		Move     Direction
-		Alive    bool
-		Snake    Snake
-	}{
-		PlayerID: ps.Player.ID,
-		Move:     ps.Move,
-		Alive:    ps.Alive,
-		Snake:    ps.Snake,
-	}
-
-	return json.Marshal(ps_for_json)
-}
-
-func (ps *PlayerState) UnmarshalJSON(b []byte) error {
-	ps_for_json := struct {
-		PlayerID UUID
-		Move     Direction
-		Alive    bool
-		Snake    Snake
-	}{}
-
-	err := json.Unmarshal(b, &ps_for_json)
-	if err == nil {
-		// @TODO: Need to document that this creates barebones player structs.
-		ps.Player = &Player{ID: ps_for_json.PlayerID}
-		ps.Move = ps_for_json.Move
-		ps.Alive = ps_for_json.Alive
-		ps.Snake = ps_for_json.Snake
-	}
-
-	return err
 }
