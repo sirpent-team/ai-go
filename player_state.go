@@ -51,7 +51,7 @@ func (ps PlayerState) Successor(gs *GameState) (*PlayerState, error) {
 	return ps2, err
 }
 
-func (ps *PlayerState) MarshalJSON() ([]byte, error) {
+func (ps PlayerState) MarshalJSON() ([]byte, error) {
 	ps_for_json := struct {
 		PlayerID UUID
 		Move     Direction
