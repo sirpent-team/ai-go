@@ -2,102 +2,102 @@ package main
 
 import (
 	"fmt"
-	"time"
-	// "sync"
 	"github.com/sirpent-team/sirpent-go"
-	"golang.org/x/net/websocket"
-	"net/http"
+	"time"
 )
 
 func main() {
-	grid := sirpent.NewHexHexGrid(20)
-
+	// Configure all players.
 	players := make(map[sirpent.UUID]*sirpent.Player)
-	player0 := sirpent.NewPlayer("localhost:8901")
-	players[player0.ID] = player0
-	player1 := sirpent.NewPlayer("localhost:8902")
-	players[player1.ID] = player1
-	player2 := sirpent.NewPlayer("localhost:8903")
-	players[player2.ID] = player2
-	player3 := sirpent.NewPlayer("localhost:8904")
-	players[player3.ID] = player3/*
-	player4 := sirpent.NewPlayer("localhost:8905")
-	players[player4.ID] = player4
-	player5 := sirpent.NewPlayer("localhost:8906")
-	players[player5.ID] = player5
-	player6 := sirpent.NewPlayer("localhost:8907")
-	players[player6.ID] = player6
-	player7 := sirpent.NewPlayer("localhost:8908")
-	players[player7.ID] = player7
-	player8 := sirpent.NewPlayer("localhost:8909")
-	players[player8.ID] = player8*/
+	player_addresses := []string{"localhost:8901", "localhost:8902"}
+	for i := range player_addresses {
+		player := sirpent.NewPlayer(player_addresses[i])
+		players[player.ID] = player
+	}
 
+	// Create game datastructures.
+	grid := &sirpent.HexGridHexagonal{Rings: 20}
 	game := sirpent.NewGame(grid, players)
 
-	// Connect to players.
-	// @TODO: Prevent waiting for network N times, using sync.WaitGroup and Goroutines.
-	for _, player := range game.Players {
-		err := player.Connect(game)
+	bs, _ := game.MarshalJSON()
+	fmt.Printf("game json = %s\n", string(bs))
+
+	// Connect to all players.
+	err_chans := make(map[sirpent.UUID]chan error)
+	for player_id, player := range game.Players {
+		err_chans[player_id] = make(chan error)
+		go player.Connect(game, 5*time.Second, err_chans[player_id])
+	}
+	for player_id, player := range game.Players {
+		err := <-err_chans[player_id]
 		if err != nil {
-			// @TODO: Decide how to handle connection unestablished.
-			fmt.Println("Player connection failed.")
-			panic(err)
+			player.ErrorKillPlayer(err)
 		}
 	}
-	// @TODO: Tell players about game, grid etc!
 
-	// @TODO: Basic setup complete; start API server.
-	//        Expand upon api.go
-	api := sirpent.API{}
+	// 1. Syncronously a game state is created with a Snake for each connected Player.
+	new_game_state := sirpent.NewGameState(game)
+	for player_id, player := range game.Players {
+		v, _ := game.Grid.CryptoRandomCell()
+		snake := sirpent.NewSnake(v)
+		snake = append(snake, game.Grid.CellNeighbour(snake[0], "SOUTHWEST"))
+		snake = append(snake, game.Grid.CellNeighbour(snake[1], "SOUTHWEST"))
+		new_game_state.Plays[player_id] = sirpent.NewPlayerState(player, snake)
+	}
+	game.Ticks[game.TickCount] = new_game_state
+	game.TickCount++
 
-	go func() {
-		http.Handle("/", http.FileServer(http.Dir("webroot")))
-		http.Handle("/worlds/live.json", websocket.Handler(func(ws *websocket.Conn) {
-			defer func() {
-				err := ws.Close()
-				if err != nil {
-					fmt.Printf("websocket.Close err=%s\n", err)
-				}
-			}()
+	play(game)
+}
 
-			// @TODO: Error handling.
-			_ = websocket.JSON.Send(ws, game.Grid)
-			api.Websockets = append(api.Websockets, ws)
+func play(game *sirpent.Game) {
+	current_state := game.LatestTick()
+	for current_state.HasLivingPlayers() {
+		//cs_json, _ := current_state.MarshalJSON()
+		//fmt.Printf("current_state json = %s\n", string(cs_json))
 
-			// @TODO: Keep Websocket alive without an infinite loop.
-			// Use channels properly?
-			for {
-				time.Sleep(1 * time.Second)
+		next_state := &sirpent.GameState{
+			ID:    game.TickCount,
+			Plays: make(map[sirpent.UUID]*sirpent.PlayerState),
+			Food:  current_state.Food,
+		}
+
+		err_chans := make(map[sirpent.UUID]chan error)
+		action_chans := make(map[sirpent.UUID]chan *sirpent.PlayerAction)
+		for player_id, current_player_state := range current_state.Plays {
+			if current_player_state.Alive {
+				err_chans[player_id] = make(chan error)
+				action_chans[player_id] = make(chan *sirpent.PlayerAction)
+				go current_player_state.Player.PlayTurn(game, action_chans[player_id], err_chans[player_id])
 			}
-		}))
-		err := http.ListenAndServe(":8080", nil)
-		if err != nil {
-			panic("ListenAndServe: " + err.Error())
 		}
-	}()
 
-	// Begin the game.
-	for {
-		fmt.Printf("Tick %d\n", game.TickCount)
-		latest_state := game.Tick()
-
-		for i := range api.Websockets {
-			func(websocket_index int) {
-				api.Websockets[websocket_index].SetDeadline(time.Now().Add(5 * time.Second))
-				err := websocket.JSON.Send(api.Websockets[websocket_index], latest_state)
-				if err != nil {
-					fmt.Printf("%+v\n", err)
-					// @TODO: Locking needed?
-					api.Websockets = append(api.Websockets[:websocket_index], api.Websockets[websocket_index+1:]...)
+		for player_id, current_player_state := range current_state.Plays {
+			if current_player_state.Alive {
+				next_player_state := &sirpent.PlayerState{
+					Player: current_player_state.Player,
+					Snake:  current_player_state.Snake,
 				}
-			}(i)
+
+				var err error
+				var action *sirpent.PlayerAction
+				select {
+				case err = <-err_chans[player_id]:
+					fmt.Printf("Error %s %s\n", player_id, err.Error())
+					next_player_state.Player.ErrorKillPlayer(err)
+				case action = <-action_chans[player_id]:
+					fmt.Printf("Action %s %s\n", player_id, action)
+					next_player_state.Snake = current_player_state.Snake.Move(game.Grid, action.Move)
+				}
+
+				next_player_state.Action = action
+				next_player_state.Alive = next_player_state.Player.Alive
+				next_state.Plays[player_id] = next_player_state
+			}
 		}
 
-		if !latest_state.HasLivingPlayers() {
-			fmt.Printf("(NoLivingPlayers)\n")
-			break
-		}
-
-		time.Sleep(75 * time.Millisecond)
+		game.Ticks[game.TickCount] = next_state
+		game.TickCount++
+		current_state = game.LatestTick()
 	}
 }

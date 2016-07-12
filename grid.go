@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-type Vector []int
+type Vector [3]int
 
 func (v Vector) Eq(v2 Vector) bool {
 	if len(v) != len(v2) {
