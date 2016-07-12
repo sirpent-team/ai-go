@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"net"
 	"os"
-	//"time"
 )
 
 func main() {
@@ -66,13 +65,12 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("player ID = %s\n", player_id)
 
-	var hex_grid sirpent.HexHexGrid
-	err = pc.Decoder.Decode(&hex_grid)
+	var game sirpent.Game
+	err = pc.Decoder.Decode(&game)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("Hex Grid = %s\n", hex_grid)
 
 	for {
 		var gs sirpent.GameState
@@ -90,18 +88,21 @@ func handleConnection(conn net.Conn) {
 
 		var path []sirpent.Direction
 		var direction sirpent.Direction
-		path, err = pathfind(hex_grid, snake, head, gs.Food, gs.Food)
+		path, err = pathfind(game.Grid, snake, head, gs.Food, gs.Food)
 
 		if err == nil && len(path) > 0 {
 			direction = path[len(path)-1]
 		} else {
-			directions := sirpent.Directions
+			directions := game.Grid.Directions()
 			for i := range directions {
 				direction = directions[i]
-				neighbour := head.Neighbour(direction)
-				grow_extra_segment := gs.Food == neighbour
-				neighbour_snake := snake.Move(direction, grow_extra_segment)
-				if hex_grid.IsWithinBounds(neighbour) && !neighbour_snake.HeadIntersectsSelf() {
+				neighbour := game.Grid.CellNeighbour(head, direction)
+				grow_extra_segment := gs.Food.Eq(neighbour)
+				neighbour_snake := snake.Move(game.Grid, direction)
+				if grow_extra_segment {
+					neighbour_snake = neighbour_snake.Grow(snake[len(snake)-1])
+				}
+				if game.Grid.IsCellWithinBounds(neighbour) { //&& !neighbour_snake.HeadIntersectsSelf() {
 					break
 				}
 			}
@@ -118,7 +119,7 @@ func handleConnection(conn net.Conn) {
 		}*/
 
 		fmt.Println(direction)
-		err = pc.Encoder.Encode(direction) //sirpent.SouthEast)
+		err = pc.Encoder.Encode(sirpent.PlayerAction{Move: direction}) //sirpent.SouthEast)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -126,23 +127,23 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
-func pathfind(grid sirpent.HexGrid, snake sirpent.Snake, start sirpent.HexVector, end sirpent.HexVector, food sirpent.HexVector) ([]sirpent.Direction, error) {
-	var frontier []sirpent.HexVector
+func pathfind(grid sirpent.Grid, snake sirpent.Snake, start sirpent.Vector, end sirpent.Vector, food sirpent.Vector) ([]sirpent.Direction, error) {
+	var frontier []sirpent.Vector
 	frontier = append(frontier, start)
-	came_from := make(map[sirpent.HexVector]sirpent.HexVector)
+	came_from := make(map[sirpent.Vector]sirpent.Vector)
 	came_from[start] = start
-	cost_to := make(map[sirpent.HexVector]int)
+	cost_to := make(map[sirpent.Vector]int)
 	cost_to[start] = 0
-	direction_to := make(map[sirpent.HexVector]sirpent.Direction)
-	snake_at := make(map[sirpent.HexVector]sirpent.Snake)
+	direction_to := make(map[sirpent.Vector]sirpent.Direction)
+	snake_at := make(map[sirpent.Vector]sirpent.Snake)
 
-	var current sirpent.HexVector
+	var current sirpent.Vector
 	for len(frontier) > 0 {
 		lowest_expected_cost := 0
 		lowest_expected_cost_index := 0
 		for i := 0; i < len(frontier); i++ {
 			current := frontier[i]
-			expected_cost := cost_to[current] + current.Distance(end)
+			expected_cost := cost_to[current] + grid.DistanceBetweenCells(current, end)
 			if expected_cost < lowest_expected_cost {
 				lowest_expected_cost = expected_cost
 				lowest_expected_cost_index = i
@@ -150,23 +151,23 @@ func pathfind(grid sirpent.HexGrid, snake sirpent.Snake, start sirpent.HexVector
 		}
 		current = frontier[lowest_expected_cost_index]
 		frontier = append(frontier[:lowest_expected_cost_index], frontier[lowest_expected_cost_index+1:]...)
-		//current, frontier = frontier[len(frontier)-1], frontier[:len(frontier)-1]
-		//fmt.Printf("current=%+v\n", current)
 
-		directions := sirpent.Directions
+		directions := grid.Directions()
 		for i := range directions {
 			direction := directions[i]
-			neighbour := current.Neighbour(direction)
+			neighbour := grid.CellNeighbour(current, direction)
 			grow_extra_segment := food == neighbour
 			_, already_reached := came_from[neighbour]
 			if current == start {
 				direction_to[start] = direction
 				snake_at[start] = snake
 			}
-			neighbour_snake := snake_at[current].Move(direction, grow_extra_segment)
+			neighbour_snake := snake_at[current].Move(grid, direction)
+			if grow_extra_segment {
+				neighbour_snake = neighbour_snake.Grow(snake_at[current][len(snake_at[current])-1])
+			}
 			neighbour_cost := cost_to[current] + 1
-			if (!already_reached || cost_to[neighbour] > neighbour_cost) && grid.IsWithinBounds(neighbour) && !neighbour_snake.HeadIntersectsSelf() {
-				//fmt.Printf("neighbour=%+v\n", neighbour)
+			if (!already_reached || cost_to[neighbour] > neighbour_cost) && grid.IsCellWithinBounds(neighbour) /*&& !neighbour_snake.HeadIntersectsSelf()*/ {
 				frontier = append(frontier, neighbour)
 				came_from[neighbour] = current
 				cost_to[neighbour] = neighbour_cost
