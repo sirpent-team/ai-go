@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"errors"
 )
 
 type Player struct {
@@ -55,50 +56,36 @@ func (p *Player) Connect(game *Game, player_connection_timeout time.Duration, en
 	ended_wg.Done()
 }
 
-func (p *Player) PlayTurn(game *Game, ended_wg *sync.WaitGroup) {
-	if p.Alive {
-		previous_game_state := game.Ticks[game.TickCount-2]
-		next_game_state := game.Ticks[game.TickCount-1]
-
-		// Player turn loop:
-		// 1. Send current game state.
-		// 2. Receive chosen move.
-		// 3. Update player state.
-		// 4. Wait for global turn operations.
-		// 5. Go to 1 unless player is dead.
-
-		// 1. Send current game state.
-		err := p.connection.sendOrTimeout(previous_game_state)
-		if err != nil {
-			p.errorKillPlayer(err)
-			ended_wg.Done()
-			return
-		}
-
-		// 2. Receive chosen move.
-		var direction Direction
-		err = p.connection.receiveOrTimeout(&direction)
-		if err == nil {
-			err = game.Grid.ValidateDirection(direction)
-		}
-		if err != nil {
-			p.errorKillPlayer(err)
-			ended_wg.Done()
-			return
-		}
-
-		// 3. Update player state.
-		previous_player_state := previous_game_state.Plays[p.ID]
-		next_player_state := &PlayerState{
-			Player: p,
-			Move:   direction,
-			Alive:  p.Alive,
-			Snake:  previous_player_state.Snake.Move(game.Grid, direction),
-		}
-		next_game_state.Plays[p.ID] = next_player_state
+func (p *Player) PlayTurn(game *Game, action_chan chan PlayerAction, err_chan chan error) {
+	if !p.Alive {
+		err_chan <- errors.New("Player cannot take a turn for they are already dead.")
+		return
 	}
 
-	ended_wg.Done()
+	previous_game_state := game.LatestTick()
+
+	// Player turn loop:
+	// 1. Send current game state.
+	// 2. Receive chosen move.
+	// 3. Update player state.
+	// 4. Wait for global turn operations.
+	// 5. Go to 1 unless player is dead.
+
+	// 1. Send current game state.
+	err := p.connection.sendOrTimeout(previous_game_state)
+	if err != nil {
+		err_chan <- err
+		return
+	}
+
+	// 2. Receive chosen action.
+	var action PlayerAction
+	err = p.connection.receiveOrTimeout(&action)
+	if err != nil {
+		err_chan <- err
+		return
+	}
+	action_chan <- action
 }
 
 func (p *Player) errorKillPlayer(err error) {

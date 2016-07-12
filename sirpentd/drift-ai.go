@@ -82,14 +82,17 @@ func handleConnection(conn net.Conn) {
 			fmt.Println(err)
 			return
 		}
-		for player_id, player_state := range gs.Plays {
+		/*for player_id, player_state := range gs.Plays {
 			fmt.Printf("( player_id=%s snake=%+v )\n", player_id, player_state.Snake)
-		}
+		}*/
 
 		directions := game.Grid.Directions()
 		var direction sirpent.Direction
 		for i := range directions {
 			direction = directions[i]
+
+			gs_json, _ := gs.MarshalJSON()
+			fmt.Printf("gs json = %s\n", string(gs_json))
 
 			snake := gs.Plays[player_id].Snake
 			head := snake[0]
@@ -114,7 +117,7 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 		fmt.Printf("gs.ID = %d, direction = %s\n", gs.ID, direction)
-		err = pc.Encoder.Encode(direction) //sirpent.SouthEast)
+		err = pc.Encoder.Encode(sirpent.PlayerAction{Move: direction}) //sirpent.SouthEast)
 		if err != nil {
 			panic(err)
 			fmt.Println(err)
