@@ -5,11 +5,11 @@ type HexGridUnshaped struct{}
 // Cube coordinates, everywhere.
 // http://www.redblobgames.com/grids/hexagons/#coordinatestype Direction interface {
 
-func (g HexGridUnshaped) Directions() []Direction {
+func (g *HexGridUnshaped) Directions() []Direction {
 	return []Direction{"NORTHEAST", "EAST", "SOUTHEAST", "SOUTHWEST", "WEST", "NORTHWEST"}
 }
 
-func (g HexGridUnshaped) ValidateDirection(d Direction) error {
+func (g *HexGridUnshaped) ValidateDirection(d Direction) error {
 	directions := g.Directions()
 	for i := range directions {
 		if directions[i] == d {
@@ -19,7 +19,7 @@ func (g HexGridUnshaped) ValidateDirection(d Direction) error {
 	return DirectionError{DirectionValue: d}
 }
 
-func (g HexGridUnshaped) CellNeighbour(v Vector, d Direction) Vector {
+func (g *HexGridUnshaped) CellNeighbour(v Vector, d Direction) Vector {
 	neighbour := Vector{v[0], v[1], v[2]}
 	switch d {
 	case "NORTHEAST":
@@ -44,7 +44,7 @@ func (g HexGridUnshaped) CellNeighbour(v Vector, d Direction) Vector {
 	return neighbour
 }
 
-func (g HexGridUnshaped) CellNeighbours(v Vector) []Vector {
+func (g *HexGridUnshaped) CellNeighbours(v Vector) []Vector {
 	directions := g.Directions()
 	neighbours := make([]Vector, len(directions))
 	for i := range directions {
@@ -53,7 +53,7 @@ func (g HexGridUnshaped) CellNeighbours(v Vector) []Vector {
 	return neighbours
 }
 
-func (g HexGridUnshaped) DistanceBetweenCells(v1, v2 Vector) int {
+func (g *HexGridUnshaped) DistanceBetweenCells(v1, v2 Vector) int {
 	dx := abs(v2[0] - v1[0])
 	dy := abs(v2[1] - v1[1])
 	dz := abs(v2[2] - v1[2])

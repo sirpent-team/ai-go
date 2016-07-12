@@ -33,7 +33,7 @@ func (gs *GameState) HasLivingPlayers() bool {
 	return has_living_players
 }
 
-func (gs GameState) MarshalJSON() ([]byte, error) {
+func (gs *GameState) MarshalJSON() ([]byte, error) {
 	gs_for_json := struct {
 		ID    uint                   `json:"id"`
 		Plays map[string]PlayerState `json:"plays"`

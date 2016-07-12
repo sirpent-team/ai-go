@@ -27,10 +27,10 @@ func (err CollisionError) Error() string {
 	return "Unknown collision."
 }
 
-func (err CollisionError) CollidedWithPlayer() bool {
+func (err *CollisionError) CollidedWithPlayer() bool {
 	return (err.CollidedWithPlayerID != nil)
 }
 
-func (err CollisionError) CollidedWithBounds() bool {
+func (err *CollisionError) CollidedWithBounds() bool {
 	return err.collided_with_bounds
 }

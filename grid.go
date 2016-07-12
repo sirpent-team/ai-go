@@ -47,7 +47,7 @@ func ParseGridJSON(b []byte) (Grid, error) {
 	var grid Grid
 	switch g_for_json.GridType {
 	case "hex_grid_hexagonal":
-		grid = HexGridHexagonal{Rings: g_for_json.Rings}
+		grid = &HexGridHexagonal{Rings: g_for_json.Rings}
 	}
 
 	if grid == nil {

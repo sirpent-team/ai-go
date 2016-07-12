@@ -3,7 +3,6 @@ package main
 import (
   "fmt"
   "time"
-  "sync"
   "github.com/sirpent-team/sirpent-go"
   // "github.com/davecgh/go-spew/spew"
   // "golang.org/x/net/websocket"
@@ -22,21 +21,24 @@ func main() {
   }
 
   // Create game datastructures.
-  grid := sirpent.HexGridHexagonal{Rings: 20}
+  grid := &sirpent.HexGridHexagonal{Rings: 20}
   game := sirpent.NewGame(grid, players)
-  //fmt.Printf("game = ")
-  //spew.Dump(game)
 
   bs, _ := game.MarshalJSON()
   fmt.Printf("game json = %s\n", string(bs))
 
   // Connect to all players.
-  var ended_wg sync.WaitGroup
-  for _, player := range(game.Players) {
-    ended_wg.Add(1)
-    go player.Connect(game, 5 * time.Second, &ended_wg)
+  err_chans := make(map[sirpent.UUID]chan error)
+  for player_id, player := range(game.Players) {
+    err_chans[player_id] = make(chan error)
+    go player.Connect(game, 5 * time.Second, err_chans[player_id])
   }
-  ended_wg.Wait()
+  for player_id, player := range(game.Players) {
+    err := <- err_chans[player_id]
+    if err != nil {
+      player.ErrorKillPlayer(err)
+    }
+  }
 
   // 1. Syncronously a game state is created with a Snake for each connected Player.
   new_game_state := sirpent.NewGameState(game)
@@ -56,8 +58,8 @@ func main() {
 func play(game *sirpent.Game) {
   current_state := game.LatestTick()
   for current_state.HasLivingPlayers() {
-    cs_json, _ := current_state.MarshalJSON()
-    fmt.Printf("current_state json = %s\n", string(cs_json))
+    //cs_json, _ := current_state.MarshalJSON()
+    //fmt.Printf("current_state json = %s\n", string(cs_json))
 
     next_state := &sirpent.GameState{
       ID:    game.TickCount,
@@ -66,25 +68,36 @@ func play(game *sirpent.Game) {
     }
 
     err_chans := make(map[sirpent.UUID]chan error)
-    action_chans := make(map[sirpent.UUID]chan sirpent.PlayerAction)
+    action_chans := make(map[sirpent.UUID]chan *sirpent.PlayerAction)
     for player_id, current_player_state := range current_state.Plays {
       if current_player_state.Alive {
         err_chans[player_id] = make(chan error)
-        action_chans[player_id] = make(chan sirpent.PlayerAction)
+        action_chans[player_id] = make(chan *sirpent.PlayerAction)
         go current_player_state.Player.PlayTurn(game, action_chans[player_id], err_chans[player_id])
       }
     }
 
     for player_id, current_player_state := range current_state.Plays {
       if current_player_state.Alive {
-        select {
-        case err := <- err_chans[player_id]:
-          fmt.Printf("Error %s %s\n", player_id, err.Error())
-          //current_state.Plays[i].ErrorKillPlayer(err)
-        case action := <- action_chans[player_id]:
-          // @TODO: Update player.
-          fmt.Printf("Action %s %s\n", player_id, action)
+        next_player_state := &sirpent.PlayerState{
+          Player: current_player_state.Player,
+          Snake: current_player_state.Snake,
         }
+
+        var err error
+        var action *sirpent.PlayerAction
+        select {
+        case err = <- err_chans[player_id]:
+          fmt.Printf("Error %s %s\n", player_id, err.Error())
+          next_player_state.Player.ErrorKillPlayer(err)
+        case action = <- action_chans[player_id]:
+          fmt.Printf("Action %s %s\n", player_id, action)
+          next_player_state.Snake = current_player_state.Snake.Move(game.Grid, action.Move)
+        }
+
+        next_player_state.Action = action
+        next_player_state.Alive = next_player_state.Player.Alive
+        next_state.Plays[player_id] = next_player_state
       }
     }
 
@@ -93,29 +106,3 @@ func play(game *sirpent.Game) {
     current_state = game.LatestTick()
   }
 }
-
-/*
-  // Run all players gameloop.
-  latest_game_state := game.LatestTick()
-  for latest_game_state.HasLivingPlayers() {
-    new_game_state = &sirpent.GameState{
-      ID:    game.TickCount,
-      Plays: make(map[sirpent.UUID]*sirpent.PlayerState),
-      Food:  latest_game_state.Food,
-    }
-    game.Ticks[game.TickCount] = new_game_state
-    game.TickCount++
-
-    for _, player_state := range latest_game_state.Plays {
-      if player_state.Player.Alive {
-        ended_wg.Add(1)
-        go player_state.Player.PlayTurn(game, &ended_wg)
-      }
-    }
-    ended_wg.Wait()
-    latest_game_state = game.LatestTick()
-
-    gs_json, _ := latest_game_state.MarshalJSON()
-    fmt.Printf("game state json = %s\n", string(gs_json))
-  }
-*/

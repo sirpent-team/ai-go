@@ -1,10 +1,10 @@
 package sirpent
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
-	"errors"
 )
 
 type Player struct {
@@ -29,34 +29,31 @@ func NewPlayer(server_address string) *Player {
 	}
 }
 
-func (p *Player) Connect(game *Game, player_connection_timeout time.Duration, ended_wg *sync.WaitGroup) {
+func (p *Player) Connect(game *Game, player_connection_timeout time.Duration, err_chan chan error) {
 	// 1. Simultaneously all Players connect and send the player ID.
 	connection, err := newJsonSocket(p.server_address, player_connection_timeout)
 	if err != nil {
-		p.errorKillPlayer(err)
-		ended_wg.Done()
+		err_chan <- err
 		return
 	}
 	p.connection = connection
 
 	err = p.connection.sendOrTimeout(p.ID)
 	if err != nil {
-		p.errorKillPlayer(err)
-		ended_wg.Done()
+		err_chan <- err
 		return
 	}
 
 	err = p.connection.sendOrTimeout(game)
 	if err != nil {
-		p.errorKillPlayer(err)
-		ended_wg.Done()
+		err_chan <- err
 		return
 	}
 
-	ended_wg.Done()
+	err_chan <- nil
 }
 
-func (p *Player) PlayTurn(game *Game, action_chan chan PlayerAction, err_chan chan error) {
+func (p *Player) PlayTurn(game *Game, action_chan chan *PlayerAction, err_chan chan error) {
 	if !p.Alive {
 		err_chan <- errors.New("Player cannot take a turn for they are already dead.")
 		return
@@ -79,7 +76,7 @@ func (p *Player) PlayTurn(game *Game, action_chan chan PlayerAction, err_chan ch
 	}
 
 	// 2. Receive chosen action.
-	var action PlayerAction
+	var action *PlayerAction
 	err = p.connection.receiveOrTimeout(&action)
 	if err != nil {
 		err_chan <- err
@@ -88,7 +85,7 @@ func (p *Player) PlayTurn(game *Game, action_chan chan PlayerAction, err_chan ch
 	action_chan <- action
 }
 
-func (p *Player) errorKillPlayer(err error) {
+func (p *Player) ErrorKillPlayer(err error) {
 	p.Alive = false
 	p.DiedFrom.DiagnoseError(err)
 	fmt.Printf("---\nDIED: Player %s died from %s---\n", p.ID, p.DiedFrom.Spew())
