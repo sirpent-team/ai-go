@@ -1,13 +1,14 @@
 package sirpent
 
 import (
+	"github.com/davecgh/go-spew/spew"
 	"net"
 )
 
 // Useful for debugging and statistics.
 type CauseOfDeath struct {
 	// Death error.
-	Err error `json:"err"`
+	Err string `json:"error"`
 	// Tick that the player died in.
 	// @TODO: Implement setting this.
 	//DiedAt TickID `json:"died_at"`
@@ -22,19 +23,28 @@ type CauseOfDeath struct {
 	CollidedWithBounds bool `json:"collided_with_bounds"`
 }
 
-func (cod *CauseOfDeath) HandleError(err error) {
-	cod.Err = err
-	if neterr, ok := err.(net.Error); ok {
-		if neterr.Timeout() {
+func (cod *CauseOfDeath) DiagnoseError(err error) {
+	cod.Err = err.Error()
+	if net_err, ok := err.(net.Error); ok {
+		if net_err.Timeout() {
 			cod.SocketTimeout = true
 		} else {
 			cod.SocketProblem = true
 		}
 	} else if _, ok := err.(DirectionError); ok {
 		cod.InvalidMove = true
-	} else if playercollisionerr, ok := err.(CollidedWithPlayerError); ok {
-		cod.CollisionWithPlayerID = &playercollisionerr.CollidedWithPlayerID
-	} else if _, ok := err.(CollidedWithBoundsError); ok {
-		cod.CollidedWithBounds = true
+	} else if collision_err, ok := err.(CollisionError); ok {
+		if collision_err.CollidedWithBounds() {
+			cod.CollidedWithBounds = true
+		}
+		if collision_err.CollidedWithPlayer() {
+			cod.CollisionWithPlayerID = collision_err.CollidedWithPlayerID
+		}
 	}
+}
+
+// Spew is useful to neatly present Cause Of Death. But it cannot be the String() method.
+// https://github.com/davecgh/go-spew/issues/45
+func (cod CauseOfDeath) Spew() string {
+	return spew.Sdump(cod)
 }

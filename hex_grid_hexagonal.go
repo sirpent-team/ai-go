@@ -1,7 +1,12 @@
 package sirpent
 
+import (
+	"encoding/json"
+	"errors"
+)
+
 type HexGridHexagonal struct {
-	*UnshapedHexGrid
+	HexGridUnshaped
 	Rings int
 }
 
@@ -32,6 +37,37 @@ func (g HexGridHexagonal) CryptoRandomCell() (Vector, error) {
 
 func (g HexGridHexagonal) IsCellWithinBounds(v Vector) bool {
 	return g.DistanceBetweenCells(v, g.origin()) <= g.Rings
+}
+
+func (g HexGridHexagonal) MarshalJSON() ([]byte, error) {
+	g_for_json := struct {
+		GridType string `json:"grid_type"`
+		Rings    int    `json:"rings"`
+	}{
+		GridType: "hex_grid_hexagonal",
+		Rings:    g.Rings,
+	}
+
+	return json.Marshal(g_for_json)
+}
+
+func (g *HexGridHexagonal) UnmarshalJSON(b []byte) error {
+	g_for_json := struct {
+		GridType string `json:"grid_type"`
+		Rings    int    `json:"rings"`
+	}{}
+	err := json.Unmarshal(b, &g_for_json)
+	if err != nil {
+		return err
+	}
+
+	if g_for_json.GridType != "hex_grid_hexagonal" {
+		return errors.New("Decoding wrong grid type.")
+	}
+
+	g.Rings = g_for_json.Rings
+
+	return nil
 }
 
 var _ Grid = (*HexGridHexagonal)(nil)

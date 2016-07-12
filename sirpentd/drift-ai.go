@@ -60,23 +60,25 @@ func handleConnection(conn net.Conn) {
 	var player_id sirpent.UUID
 	err := pc.Decoder.Decode(&player_id)
 	if err != nil {
+		panic(err)
 		fmt.Println(err)
 		return
 	}
 	fmt.Printf("player ID = %s\n", player_id)
 
-	var hex_grid sirpent.HexHexGrid
-	err = pc.Decoder.Decode(&hex_grid)
+	var game sirpent.Game
+	err = pc.Decoder.Decode(&game)
 	if err != nil {
+		panic(err)
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("Hex Grid = %s\n", hex_grid)
 
 	for {
 		var gs sirpent.GameState
 		err = pc.Decoder.Decode(&gs)
 		if err != nil {
+			panic(err)
 			fmt.Println(err)
 			return
 		}
@@ -84,27 +86,37 @@ func handleConnection(conn net.Conn) {
 			fmt.Printf("( player_id=%s snake=%+v )\n", player_id, player_state.Snake)
 		}
 
+		directions := game.Grid.Directions()
 		var direction sirpent.Direction
-		for {
-			direction_index := crypto_int(0, len(sirpent.Directions()))
-			direction = sirpent.Direction(direction_index)
+		for i := range directions {
+			direction = directions[i]
 
 			snake := gs.Plays[player_id].Snake
 			head := snake[0]
 			//growing := head == gs.Food
-			directed_head := head.Neighbour(direction)
+			directed_head := game.Grid.CellNeighbour(head, direction)
 			// @TODO: Somehow exactly 1 snake dies quickly, by moving onto their first tail segment.
 			// I don't get how. The move does definitely result in self-intersection but how this
 			// gets past these checks I do not know. It almost makes more sense if the AI has incorrect
 			// information on its own snake but the player id in these cases *is* correct.
-			fmt.Printf("snake=%+v directed_head=%+v\n", snake, directed_head)
-			if !snake.TailContains(directed_head) && hex_grid.IsWithinBounds(directed_head) {
+			//fmt.Printf("snake=%+v directed_head=%+v direction=%s\n", snake, directed_head, direction)
+
+			tail_contains := false
+			for i := range(snake) {
+				if snake[i].Eq(directed_head) {
+					tail_contains = true
+					break
+				}
+			}
+
+			if !tail_contains && game.Grid.IsCellWithinBounds(directed_head) {
 				break
 			}
 		}
-		fmt.Println(direction)
+		fmt.Printf("gs.ID = %d, direction = %s\n", gs.ID, direction)
 		err = pc.Encoder.Encode(direction) //sirpent.SouthEast)
 		if err != nil {
+			panic(err)
 			fmt.Println(err)
 			return
 		}

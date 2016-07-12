@@ -95,7 +95,7 @@ func handleConnection(conn net.Conn) {
 		if err == nil && len(path) > 0 {
 			direction = path[len(path)-1]
 		} else {
-			directions := sirpent.Directions()
+			directions := sirpent.Directions
 			for i := range directions {
 				direction = directions[i]
 				neighbour := head.Neighbour(direction)
@@ -108,7 +108,7 @@ func handleConnection(conn net.Conn) {
 		}
 
 		/*var direction sirpent.Direction
-		directions := sirpent.Directions()
+		directions := sirpent.Directions
 		for i := range directions {
 			candidate_direction := directions[i]
 			neighbour := head.Neighbour(candidate_direction)
@@ -153,7 +153,7 @@ func pathfind(grid sirpent.HexGrid, snake sirpent.Snake, start sirpent.HexVector
 		//current, frontier = frontier[len(frontier)-1], frontier[:len(frontier)-1]
 		//fmt.Printf("current=%+v\n", current)
 
-		directions := sirpent.Directions()
+		directions := sirpent.Directions
 		for i := range directions {
 			direction := directions[i]
 			neighbour := current.Neighbour(direction)

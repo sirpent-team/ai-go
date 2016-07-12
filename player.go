@@ -1,6 +1,8 @@
 package sirpent
 
 import (
+	"fmt"
+	"sync"
 	"time"
 )
 
@@ -9,6 +11,7 @@ type Player struct {
 	// Address to open a TCP socket to.
 	server_address string
 	connection     *jsonSocket
+	ready_wg       *sync.WaitGroup
 	// Is the Player alive after the most recent tick?
 	Alive bool `json:"alive"`
 	// What killed the player?
@@ -25,48 +28,81 @@ func NewPlayer(server_address string) *Player {
 	}
 }
 
-func (p *Player) Connect(game *Game) error {
-	connection, err := newJsonSocket(p.server_address, time.Duration(5*time.Second))
+func (p *Player) Connect(game *Game, player_connection_timeout time.Duration, ended_wg *sync.WaitGroup) {
+	// 1. Simultaneously all Players connect and send the player ID.
+	connection, err := newJsonSocket(p.server_address, player_connection_timeout)
 	if err != nil {
-		p.Alive = false
-		p.DiedFrom.HandleError(err)
-		return err
+		p.errorKillPlayer(err)
+		ended_wg.Done()
+		return
 	}
 	p.connection = connection
 
-	// Send player ID to player.
-	err = p.connection.sendOrTimeout(p.ID, 5*time.Second)
+	err = p.connection.sendOrTimeout(p.ID)
 	if err != nil {
-		p.Alive = false
-		p.DiedFrom.HandleError(err)
-		return err
+		p.errorKillPlayer(err)
+		ended_wg.Done()
+		return
 	}
 
-	// Send game grid to player.
-	err = p.connection.sendOrTimeout(game.Grid, 5*time.Second)
+	err = p.connection.sendOrTimeout(game)
 	if err != nil {
-		p.Alive = false
-		p.DiedFrom.HandleError(err)
+		p.errorKillPlayer(err)
+		ended_wg.Done()
+		return
 	}
-	return err
+
+	ended_wg.Done()
 }
 
-func (p *Player) requestMove(gs *GameState) (Direction, error) {
-	var direction Direction
+func (p *Player) PlayTurn(game *Game, ended_wg *sync.WaitGroup) {
+	if p.Alive {
+		previous_game_state := game.Ticks[game.TickCount-2]
+		next_game_state := game.Ticks[game.TickCount-1]
 
-	// @TODO: There has to be a better way to handle errors than this?
-	err := p.connection.sendOrTimeout(gs, 5*time.Second)
-	if err != nil {
-		p.Alive = false
-		p.DiedFrom.HandleError(err)
-		return direction, err
+		// Player turn loop:
+		// 1. Send current game state.
+		// 2. Receive chosen move.
+		// 3. Update player state.
+		// 4. Wait for global turn operations.
+		// 5. Go to 1 unless player is dead.
+
+		// 1. Send current game state.
+		err := p.connection.sendOrTimeout(previous_game_state)
+		if err != nil {
+			p.errorKillPlayer(err)
+			ended_wg.Done()
+			return
+		}
+
+		// 2. Receive chosen move.
+		var direction Direction
+		err = p.connection.receiveOrTimeout(&direction)
+		if err == nil {
+			err = game.Grid.ValidateDirection(direction)
+		}
+		if err != nil {
+			p.errorKillPlayer(err)
+			ended_wg.Done()
+			return
+		}
+
+		// 3. Update player state.
+		previous_player_state := previous_game_state.Plays[p.ID]
+		next_player_state := &PlayerState{
+			Player: p,
+			Move:   direction,
+			Alive:  p.Alive,
+			Snake:  previous_player_state.Snake.Move(game.Grid, direction),
+		}
+		next_game_state.Plays[p.ID] = next_player_state
 	}
 
-	err = p.connection.receiveOrTimeout(&direction, 5*time.Second)
-	if err != nil {
-		p.Alive = false
-		p.DiedFrom.HandleError(err)
-	}
+	ended_wg.Done()
+}
 
-	return direction, err
+func (p *Player) errorKillPlayer(err error) {
+	p.Alive = false
+	p.DiedFrom.DiagnoseError(err)
+	fmt.Printf("---\nDIED: Player %s died from %s---\n", p.ID, p.DiedFrom.Spew())
 }

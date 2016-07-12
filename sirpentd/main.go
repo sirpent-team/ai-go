@@ -15,12 +15,12 @@ func main() {
 	players := make(map[sirpent.UUID]*sirpent.Player)
 	player0 := sirpent.NewPlayer("localhost:8901")
 	players[player0.ID] = player0
-	/*player1 := sirpent.NewPlayer("localhost:8902")
+	player1 := sirpent.NewPlayer("localhost:8902")
 	players[player1.ID] = player1
 	player2 := sirpent.NewPlayer("localhost:8903")
 	players[player2.ID] = player2
 	player3 := sirpent.NewPlayer("localhost:8904")
-	players[player3.ID] = player3
+	players[player3.ID] = player3/*
 	player4 := sirpent.NewPlayer("localhost:8905")
 	players[player4.ID] = player4
 	player5 := sirpent.NewPlayer("localhost:8906")
