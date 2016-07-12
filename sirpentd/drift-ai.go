@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net"
 	"os"
-	//"time"
 )
 
 func main() {
@@ -60,7 +59,6 @@ func handleConnection(conn net.Conn) {
 	var player_id sirpent.UUID
 	err := pc.Decoder.Decode(&player_id)
 	if err != nil {
-		panic(err)
 		fmt.Println(err)
 		return
 	}
@@ -69,7 +67,6 @@ func handleConnection(conn net.Conn) {
 	var game sirpent.Game
 	err = pc.Decoder.Decode(&game)
 	if err != nil {
-		panic(err)
 		fmt.Println(err)
 		return
 	}
@@ -78,7 +75,6 @@ func handleConnection(conn net.Conn) {
 		var gs sirpent.GameState
 		err = pc.Decoder.Decode(&gs)
 		if err != nil {
-			panic(err)
 			fmt.Println(err)
 			return
 		}
@@ -105,7 +101,7 @@ func handleConnection(conn net.Conn) {
 			//fmt.Printf("snake=%+v directed_head=%+v direction=%s\n", snake, directed_head, direction)
 
 			tail_contains := false
-			for i := range(snake) {
+			for i := range snake {
 				if snake[i].Eq(directed_head) {
 					tail_contains = true
 					break
@@ -119,39 +115,8 @@ func handleConnection(conn net.Conn) {
 		fmt.Printf("gs.ID = %d, direction = %s\n", gs.ID, direction)
 		err = pc.Encoder.Encode(sirpent.PlayerAction{Move: direction}) //sirpent.SouthEast)
 		if err != nil {
-			panic(err)
 			fmt.Println(err)
 			return
 		}
 	}
-
-	/*for {
-		for i := 0; i < 3; i++ {
-			bufio.NewReader(conn).ReadString('\n')
-			conn.Write([]byte("SOUTHEAST\n"))
-		}
-
-		for i := 0; i < 3; i++ {
-			bufio.NewReader(conn).ReadString('\n')
-			//time.Sleep(20000 * time.Millisecond)
-			conn.Write([]byte("N"))
-			//time.Sleep(2000 * time.Millisecond)
-			conn.Write([]byte("O"))
-			//time.Sleep(2000 * time.Millisecond)
-			conn.Write([]byte("RT"))
-			//time.Sleep(2000 * time.Millisecond)
-			conn.Write([]byte("H\n"))
-			//time.Sleep(2000 * time.Millisecond)
-		}
-
-		for i := 0; i < 3; i++ {
-			bufio.NewReader(conn).ReadString('\n')
-			conn.Write([]byte("NORTHWEST\n"))
-		}
-
-		for i := 0; i < 3; i++ {
-			bufio.NewReader(conn).ReadString('\n')
-			conn.Write([]byte("SOUTH\n"))
-		}
-	}*/
 }
