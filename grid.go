@@ -19,6 +19,16 @@ func (v Vector) Eq(v2 Vector) bool {
 	return true
 }
 
+type GridKind int
+
+const (
+	hex_grid_hexagonal GridKind = iota
+)
+
+var gridKingHandlers = map[GridKind]func() Grid{
+	hex_grid_hexagonal: func() Grid { return &HexGridHexagonal{} },
+}
+
 type Grid interface {
 	// Error allows for grids with an unbounded number of cells.
 	Cells() ([]Vector, error)
