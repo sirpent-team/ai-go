@@ -1,7 +1,7 @@
 package sirpent
 
 type PlayerState struct {
-	Player *Player       `json:"player"`
+	Name   string        `json:"player_id"`
 	Action *PlayerAction `json:"action"`
 	// Player alive after this tick?
 	Alive bool `json:"alive"`
@@ -11,8 +11,8 @@ type PlayerState struct {
 
 func NewPlayerState(p *Player, s Snake) *PlayerState {
 	return &PlayerState{
-		Player: p,
-		Alive:  p.Alive,
-		Snake:  s,
+		Name:  p.Name,
+		Alive: p.Alive,
+		Snake: s,
 	}
 }

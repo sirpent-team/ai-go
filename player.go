@@ -8,43 +8,49 @@ import (
 )
 
 type Player struct {
-	ID UUID `json:"id"`
+	Name string `json:"name"`
 	// Address to open a TCP socket to.
-	server_address string
-	connection     *jsonSocket
-	ready_wg       *sync.WaitGroup
+	ServerAddress string `json:"server_address"`
+	connection    *jsonSocket
+	ready_wg      *sync.WaitGroup
 	// Is the Player alive after the most recent tick?
 	Alive bool `json:"alive"`
 	// What killed the player?
 	DiedFrom CauseOfDeath `json:"died_from"`
 }
 
-func NewPlayer(server_address string) *Player {
+func NewPlayer(name string, server_address string) *Player {
 	// @TODO: Ensure CauseOfDeath will deny every cause of death unless modified.
 	return &Player{
-		ID:             NewUUID(),
-		server_address: server_address,
-		connection:     nil,
-		Alive:          true,
+		Name:          name,
+		ServerAddress: server_address,
+		connection:    nil,
+		Alive:         true,
 	}
 }
 
 func (p *Player) Connect(game *Game, player_connection_timeout time.Duration, err_chan chan error) {
 	// 1. Simultaneously all Players connect and send the player ID.
-	connection, err := newJsonSocket(p.server_address, player_connection_timeout)
+	connection, err := newJsonSocket(p.ServerAddress, player_connection_timeout)
 	if err != nil {
 		err_chan <- err
 		return
 	}
 	p.connection = connection
 
-	err = p.connection.sendOrTimeout(p.ID)
+	err = p.connection.sendOrTimeout(p.Name)
 	if err != nil {
 		err_chan <- err
 		return
 	}
 
-	err = p.connection.sendOrTimeout(game)
+	err = p.connection.sendOrTimeout(game.World)
+	if err != nil {
+		err_chan <- err
+		return
+	}
+
+	err = p.connection.sendOrTimeout(game.Players)
 	if err != nil {
 		err_chan <- err
 		return
@@ -88,5 +94,5 @@ func (p *Player) PlayTurn(game *Game, action_chan chan *PlayerAction, err_chan c
 func (p *Player) ErrorKillPlayer(err error) {
 	p.Alive = false
 	p.DiedFrom.DiagnoseError(err)
-	fmt.Printf("---\nDIED: Player %s died from %s---\n", p.ID, p.DiedFrom.Spew())
+	fmt.Printf("---\nDIED: Player %s died from %s---\n", p.Name, p.DiedFrom.Spew())
 }

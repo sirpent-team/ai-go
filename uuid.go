@@ -6,16 +6,17 @@ import (
 )
 
 type UUID struct {
-	satori_uuid uuid.UUID
+	satori_uuid *uuid.UUID
 }
 
 func NewUUID() UUID {
-	return UUID{satori_uuid: uuid.NewV4()}
+	uuid := uuid.NewV4()
+	return UUID{satori_uuid: &uuid}
 }
 
 func UUIDFromString(id_str string) (UUID, error) {
 	satori_uuid, err := uuid.FromString(id_str)
-	return UUID{satori_uuid: satori_uuid}, err
+	return UUID{satori_uuid: &satori_uuid}, err
 }
 
 func (id UUID) String() string {

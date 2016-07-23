@@ -56,7 +56,7 @@ func crypto_int(lower int, upper int) int {
 func handleConnection(conn net.Conn) {
 	pc := NewPlayerClient(conn)
 
-	var player_id sirpent.UUID
+	var player_id string
 	err := pc.Decoder.Decode(&player_id)
 	if err != nil {
 		fmt.Println(err)
@@ -64,8 +64,15 @@ func handleConnection(conn net.Conn) {
 	}
 	fmt.Printf("player ID = %s\n", player_id)
 
-	var game sirpent.Game
-	err = pc.Decoder.Decode(&game)
+	var world sirpent.World
+	err = pc.Decoder.Decode(&world)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var players map[string]*sirpent.Player
+	err = pc.Decoder.Decode(&players)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -82,18 +89,18 @@ func handleConnection(conn net.Conn) {
 			fmt.Printf("( player_id=%s snake=%+v )\n", player_id, player_state.Snake)
 		}*/
 
-		directions := game.Grid.Directions()
+		directions := world.Grid.Directions()
 		var direction sirpent.Direction
 		for i := range directions {
 			direction = directions[i]
 
-			gs_json, _ := gs.MarshalJSON()
+			gs_json, _ := json.Marshal(gs)
 			fmt.Printf("gs json = %s\n", string(gs_json))
 
 			snake := gs.Plays[player_id].Snake
 			head := snake[0]
 			//growing := head == gs.Food
-			directed_head := game.Grid.CellNeighbour(head, direction)
+			directed_head := world.Grid.CellNeighbour(head, direction)
 			// @TODO: Somehow exactly 1 snake dies quickly, by moving onto their first tail segment.
 			// I don't get how. The move does definitely result in self-intersection but how this
 			// gets past these checks I do not know. It almost makes more sense if the AI has incorrect
@@ -108,7 +115,7 @@ func handleConnection(conn net.Conn) {
 				}
 			}
 
-			if !tail_contains && game.Grid.IsCellWithinBounds(directed_head) {
+			if !tail_contains && world.Grid.IsCellWithinBounds(directed_head) {
 				break
 			}
 		}

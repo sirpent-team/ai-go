@@ -1,0 +1,14 @@
+{
+	"players": {
+		"Player8901": {
+			"server_address": "127.0.0.1:8901"
+		}
+	},
+	"world": {
+		"grid_kind": "hex_grid_hexagonal",
+		"grid": {
+			"rings": 20
+		}
+	},
+	"rounds": 10
+}
