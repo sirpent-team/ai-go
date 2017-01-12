@@ -2,6 +2,7 @@ package sirpent
 
 import (
 	"fmt"
+  "log"
 )
 
 type DirectionError struct {
@@ -80,6 +81,8 @@ func (g *HexagonalGrid) CellNeighbour(v Vector, d Direction) Vector {
     neighbour.Y++
   case "northwest":
     neighbour.X--
+  default:
+    log.Fatal("Unknown direction.")
   }
   return neighbour
 }

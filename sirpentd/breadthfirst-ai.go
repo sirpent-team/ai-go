@@ -12,6 +12,10 @@ import (
 	"log"
 )
 
+// This is not intended as an illustrative example. This code was adapted from a Go
+// sirpent server implementation. The code is too verbose and unclear to learn much from.
+// But it does seek out food quite well.
+
 func main() {
 	port := os.Args[1]
 	conn, err := net.Dial("tcp", ":" + port)
@@ -180,6 +184,10 @@ func pathfind(grid sirpent.HexagonalGrid, snake sirpent.Snake, start sirpent.Vec
 		for i := range directions {
 			direction := directions[i]
 			neighbour := grid.CellNeighbour(current, direction)
+			//if neighbour == end {
+			//	fmt.Println("reached neighbour=end")
+			//}
+			//fmt.Printf("%+v\n", neighbour)
 			grow_extra_segment := food == neighbour
 			_, already_reached := came_from[neighbour]
 			if current == start {
