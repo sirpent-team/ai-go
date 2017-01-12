@@ -3,7 +3,18 @@ package sirpent
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 )
+
+type DirectionError struct {
+	DirectionValue Direction
+}
+
+func (e DirectionError) Error() string {
+	return fmt.Sprintf("Direction '%s' not found.", e.DirectionValue)
+}
+
+type Direction string
 
 type Vector [3]int
 
@@ -22,11 +33,11 @@ func (v Vector) Eq(v2 Vector) bool {
 type GridKind int
 
 const (
-	hex_grid_hexagonal GridKind = iota
+	hexagonal_grid GridKind = iota
 )
 
 var gridKingHandlers = map[GridKind]func() Grid{
-	hex_grid_hexagonal: func() Grid { return &HexGridHexagonal{} },
+	hexagonal_grid: func() Grid { return &HexagonalGrid{} },
 }
 
 type Grid interface {
@@ -56,8 +67,8 @@ func ParseGridJSON(b []byte) (Grid, error) {
 
 	var grid Grid
 	switch g_for_json.GridType {
-	case "hex_grid_hexagonal":
-		grid = &HexGridHexagonal{Rings: g_for_json.Rings}
+	case "hexagonal_grid":
+		grid = &HexagonalGrid{Rings: g_for_json.Rings}
 	}
 
 	if grid == nil {
