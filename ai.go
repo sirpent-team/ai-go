@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirpent-team/sirpent-ai-go"
+	"github.com/sirpent-team/ai-go/src"
 	"math/big"
 	"net"
 	"os"
@@ -17,10 +17,14 @@ import (
 // But it does seek out food quite well.
 
 func main() {
-	port := os.Args[1]
-	conn, err := net.Dial("tcp", ":" + port)
+	if len(os.Args) < 0 {
+		fmt.Printf("Provide the address of the sirpent server e.g., `ai-go localhost:8080`")
+		return
+	}
+	address := os.Args[1]
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		panic(fmt.Sprintf("Could not connect to a TCP server on port %s.", port))
+		panic(fmt.Sprintf("Could not connect to a TCP server on %s.", address))
 	}
 	handleConnection(conn)
 }
