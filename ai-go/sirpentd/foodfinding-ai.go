@@ -5,28 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirpent-team/sirpent-go"
+	"github.com/sirpent-team/sirpent-ai-go"
 	"math/big"
 	"net"
 	"os"
+	"log"
 )
 
 func main() {
-	port := os.Args[1] //"8901"
-
-	ln, err := net.Listen("tcp", ":"+port)
+	port := os.Args[1]
+	conn, err := net.Dial("tcp", ":" + port)
 	if err != nil {
-		panic(fmt.Sprintf("Could not establish TCP server on port %s.", port))
+		panic(fmt.Sprintf("Could not connect to a TCP server on port %s.", port))
 	}
-
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			panic(fmt.Sprintf("Could not listen on port %s.", port))
-		}
-
-		go handleConnection(conn)
-	}
+	handleConnection(conn)
 }
 
 type PlayerClient struct {
@@ -54,53 +46,93 @@ func crypto_int(lower int, upper int) int {
 	return n + lower
 }
 
+func decodeMsg(json_decoder *json.Decoder) (json.RawMessage, sirpent.Msg) {
+	var raw json.RawMessage
+	env := sirpent.Msg{
+		Data: &raw,
+	}
+	if err := json_decoder.Decode(&env); err != nil {
+		log.Fatal(err)
+	}
+	return raw, env
+}
+
 func handleConnection(conn net.Conn) {
 	pc := NewPlayerClient(conn)
 
-	var player_id sirpent.UUID
-	err := pc.Decoder.Decode(&player_id)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("player ID = %s\n", player_id)
+	// var version_msg sirpent.VersionMsg
+	// err := pc.Decoder.Decode(&msg)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return
+	// }
+	// version_msg = msg.Data.(sirpent.VersionMsg)
+	// fmt.Println(version_msg)
 
-	var game sirpent.Game
-	err = pc.Decoder.Decode(&game)
+	raw, env := decodeMsg(pc.Decoder)
+	msg := sirpent.MsgKindHandlers[env.Msg]()
+	if err := json.Unmarshal(raw, msg); err != nil {
+		log.Fatal(err)
+	}
+	version_msg := msg.(*sirpent.VersionMsg)
+	fmt.Printf("%+v\n", version_msg)
+
+	register_msg := sirpent.RegisterMsg{DesiredName: "foodfinding-ai", Kind: "player"}
+	msg = sirpent.Msg{Msg: sirpent.Register, Data: register_msg}
+	err := pc.Encoder.Encode(msg)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
+
+	raw, env = decodeMsg(pc.Decoder)
+	msg = sirpent.MsgKindHandlers[env.Msg]()
+	if err := json.Unmarshal(raw, msg); err != nil {
+		log.Fatal(err)
+	}
+	welcome_msg := msg.(*sirpent.WelcomeMsg)
+	fmt.Printf("%+v\n", welcome_msg)
+
+	name := welcome_msg.Name;
+
+	raw, env = decodeMsg(pc.Decoder)
+	msg = sirpent.MsgKindHandlers[env.Msg]()
+	if err := json.Unmarshal(raw, msg); err != nil {
+		log.Fatal(err)
+	}
+	new_game_msg := msg.(*sirpent.NewGameMsg)
+	fmt.Printf("%+v\n", new_game_msg)
+	game := new_game_msg.Game
 
 	for {
-		var gs sirpent.GameState
-		err = pc.Decoder.Decode(&gs)
-		if err != nil {
-			fmt.Println(err)
-			return
+		raw, env = decodeMsg(pc.Decoder)
+		msg = sirpent.MsgKindHandlers[env.Msg]()
+		if err := json.Unmarshal(raw, msg); err != nil {
+			log.Fatal(err)
 		}
-		for player_id, player_state := range gs.Plays {
-			fmt.Printf("( player_id=%s snake=%+v )\n", player_id, player_state.Snake)
-		}
+		turn_msg := msg.(*sirpent.TurnMsg)
+		fmt.Printf("%+v\n", turn_msg)
+		turn := turn_msg.Turn
 
-		snake := gs.Plays[player_id].Snake
-		head := snake[0]
+		snake := turn.Snakes[name]
+		head := snake.Segments[0]
 
 		var path []sirpent.Direction
 		var direction sirpent.Direction
-		path, err = pathfind(game.Grid, snake, head, gs.Food, gs.Food)
+		path, err = pathfind(game.Grid, snake, head, turn.Food[0], turn.Food[0])
 
 		if err == nil && len(path) > 0 {
 			direction = path[len(path)-1]
 		} else {
+			fmt.Println(err)
 			directions := game.Grid.Directions()
 			for i := range directions {
 				direction = directions[i]
 				neighbour := game.Grid.CellNeighbour(head, direction)
-				grow_extra_segment := gs.Food.Eq(neighbour)
+				grow_extra_segment := turn.Food[0].Eq(neighbour)
 				neighbour_snake := snake.Move(game.Grid, direction)
 				if grow_extra_segment {
-					neighbour_snake = neighbour_snake.Grow(snake[len(snake)-1])
+					neighbour_snake = neighbour_snake.Grow(snake.Segments[len(snake.Segments)-1])
 				}
 				if game.Grid.IsCellWithinBounds(neighbour) { //&& !neighbour_snake.HeadIntersectsSelf() {
 					break
@@ -108,26 +140,18 @@ func handleConnection(conn net.Conn) {
 			}
 		}
 
-		/*var direction sirpent.Direction
-		directions := sirpent.Directions
-		for i := range directions {
-			candidate_direction := directions[i]
-			neighbour := head.Neighbour(candidate_direction)
-			if (len(path) == 0 || neighbour == path[len(path)-1]) && !snake.Move(direction, false).HeadIntersectsSelf() {
-				direction = candidate_direction
-			}
-		}*/
-
-		fmt.Println(direction)
-		err = pc.Encoder.Encode(sirpent.PlayerAction{Move: direction}) //sirpent.SouthEast)
+		move_msg := sirpent.MoveMsg{Direction: direction}
+		fmt.Printf("%+v\n", move_msg)
+		msg = sirpent.Msg{Msg: sirpent.Move, Data: move_msg}
+		err := pc.Encoder.Encode(msg)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatal(err)
 			return
 		}
 	}
 }
 
-func pathfind(grid sirpent.Grid, snake sirpent.Snake, start sirpent.Vector, end sirpent.Vector, food sirpent.Vector) ([]sirpent.Direction, error) {
+func pathfind(grid sirpent.HexagonalGrid, snake sirpent.Snake, start sirpent.Vector, end sirpent.Vector, food sirpent.Vector) ([]sirpent.Direction, error) {
 	var frontier []sirpent.Vector
 	frontier = append(frontier, start)
 	came_from := make(map[sirpent.Vector]sirpent.Vector)
@@ -164,10 +188,10 @@ func pathfind(grid sirpent.Grid, snake sirpent.Snake, start sirpent.Vector, end 
 			}
 			neighbour_snake := snake_at[current].Move(grid, direction)
 			if grow_extra_segment {
-				neighbour_snake = neighbour_snake.Grow(snake_at[current][len(snake_at[current])-1])
+				neighbour_snake = neighbour_snake.Grow(snake_at[current].Segments[len(snake_at[current].Segments)-1])
 			}
 			neighbour_cost := cost_to[current] + 1
-			if (!already_reached || cost_to[neighbour] > neighbour_cost) && grid.IsCellWithinBounds(neighbour) /*&& !neighbour_snake.HeadIntersectsSelf()*/ {
+			if (!already_reached || cost_to[neighbour] > neighbour_cost) && grid.IsCellWithinBounds(neighbour) { //&& !neighbour_snake.HeadIntersectsSelf() {
 				frontier = append(frontier, neighbour)
 				came_from[neighbour] = current
 				cost_to[neighbour] = neighbour_cost

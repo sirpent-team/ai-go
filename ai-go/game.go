@@ -13,9 +13,9 @@ package sirpent
 }
 */
 
-type Game struct {
-	ID   string `json:"uuid"`
-	Grid Grid   `json:"grid"`
+type GameState struct {
+	ID   string        `json:"uuid"`
+	Grid HexagonalGrid `json:"grid"`
 	// All players in this game.
 	Players []string `json:"players"`
 }

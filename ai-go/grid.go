@@ -1,8 +1,6 @@
 package sirpent
 
 import (
-	"encoding/json"
-	"errors"
 	"fmt"
 )
 
@@ -16,63 +14,92 @@ func (e DirectionError) Error() string {
 
 type Direction string
 
-type Vector [3]int
+type Vector struct {
+	X int
+	Y int
+}
 
 func (v Vector) Eq(v2 Vector) bool {
-	if len(v) != len(v2) {
-		return false
-	}
-	for i := range v {
-		if i >= len(v2) || v[i] != v2[i] {
-			return false
-		}
-	}
-	return true
+	return v.X == v2.X && v.Y == v2.Y
 }
 
-type GridKind int
-
-const (
-	hexagonal_grid GridKind = iota
-)
-
-var gridKingHandlers = map[GridKind]func() Grid{
-	hexagonal_grid: func() Grid { return &HexagonalGrid{} },
+type HexagonalGrid struct {
+  Radius int `json:"radius"`
 }
 
-type Grid interface {
-	// Error allows for grids with an unbounded number of cells.
-	Cells() ([]Vector, error)
-	CryptoRandomCell() (Vector, error)
-
-	Directions() []Direction
-	// Error if direction invalid. Makes up for being unable to typecheck grid-specific directions.
-	ValidateDirection(d Direction) error
-	CellNeighbour(v Vector, d Direction) Vector
-	CellNeighbours(v Vector) []Vector
-
-	IsCellWithinBounds(v Vector) bool
-	DistanceBetweenCells(v1, v2 Vector) int
+func (g *HexagonalGrid) origin() Vector {
+  return Vector{0, 0}
 }
 
-func ParseGridJSON(b []byte) (Grid, error) {
-	g_for_json := struct {
-		GridType string `json:"grid_type"`
-		Rings    int    `json:"rings"`
-	}{}
-	err := json.Unmarshal(b, &g_for_json)
-	if err != nil {
-		return nil, err
-	}
+func (g *HexagonalGrid) Cells() ([]Vector, error) {
+  cells := make([]Vector, 0)
+  for x := -g.Radius; x <= g.Radius; x++ {
+    for y := -g.Radius; y <= g.Radius; y++ {
+      cells = append(cells, Vector{x, y})
+    }
+  }
+  return cells, nil
+}
 
-	var grid Grid
-	switch g_for_json.GridType {
-	case "hexagonal_grid":
-		grid = &HexagonalGrid{Rings: g_for_json.Rings}
-	}
+func (g *HexagonalGrid) CryptoRandomCell() (Vector, error) {
+  v := Vector{
+    X: crypto_int(-g.Radius, g.Radius),
+    Y: crypto_int(-g.Radius, g.Radius),
+  }
+  return v, nil
+}
 
-	if grid == nil {
-		return nil, errors.New("Unknown Grid Type.")
-	}
-	return grid, nil
+func (g *HexagonalGrid) Directions() []Direction {
+  return []Direction{"north", "northeast", "southeast", "south", "southwest", "northwest"}
+}
+
+func (g *HexagonalGrid) ValidateDirection(d Direction) error {
+  directions := g.Directions()
+  for i := range directions {
+    if directions[i] == d {
+      return nil
+    }
+  }
+  return DirectionError{DirectionValue: d}
+}
+
+func (g *HexagonalGrid) CellNeighbour(v Vector, d Direction) Vector {
+  neighbour := Vector{v.X, v.Y}
+  switch d {
+  case "north":
+    neighbour.Y--
+  case "northeast":
+    neighbour.X++
+    neighbour.Y--
+  case "southeast":
+    neighbour.X++
+  case "south":
+    neighbour.Y++
+  case "southwest":
+    neighbour.X--
+    neighbour.Y++
+  case "northwest":
+    neighbour.X--
+  }
+  return neighbour
+}
+
+func (g *HexagonalGrid) CellNeighbours(v Vector) []Vector {
+  directions := g.Directions()
+  neighbours := make([]Vector, len(directions))
+  for i := range directions {
+    neighbours[i] = g.CellNeighbour(v, directions[i])
+  }
+  return neighbours
+}
+
+func (g *HexagonalGrid) IsCellWithinBounds(v Vector) bool {
+  return g.DistanceBetweenCells(v, g.origin()) <= g.Radius
+}
+
+func (g *HexagonalGrid) DistanceBetweenCells(v1, v2 Vector) int {
+  dx := abs(v2.X - v1.X)
+  dy := abs(v2.Y - v1.Y)
+  dz := abs((v1.X + v1.Y) - (v2.X + v2.Y))
+  return max(max(dx, dy), dz)
 }

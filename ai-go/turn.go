@@ -26,7 +26,7 @@ import "encoding/json"
 }
 */
 
-type Turn struct {
+type TurnState struct {
 	TurnNumber uint                       `json:"turn_number"`
 	Directions map[string]Direction       `json:"directions"`
 	Food       []Vector                   `json:"food"`

@@ -23,14 +23,14 @@ func (snake Snake) Copy() Snake {
 	return copied_snake
 }
 
-func (snake Snake) Move(grid Grid, direction Direction) Snake {
+func (snake Snake) Move(grid HexagonalGrid, direction Direction) Snake {
 	moved_snake := snake.Copy()
 
 	// Discard final segment.
 	moved_snake.Segments = moved_snake.Segments[:len(snake.Segments)-1]
 
 	// Prepend the new, moved head.
-	moved_head := grid.CellNeighbour(moved_snake.Segments[0], direction)
+	moved_head := grid.CellNeighbour(snake.Segments[0], direction)
 	moved_snake.Segments = append([]Vector{moved_head}, moved_snake.Segments...)
 
 	return moved_snake
