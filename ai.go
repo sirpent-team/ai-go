@@ -22,10 +22,12 @@ func main() {
 		return
 	}
 	address := os.Args[1]
+
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		panic(fmt.Sprintf("Could not connect to a TCP server on %s.", address))
 	}
+
 	handleConnection(conn)
 }
 
@@ -103,58 +105,60 @@ func handleConnection(conn net.Conn) {
 
 	name := welcome_msg.Name;
 
-	raw, env = decodeMsg(pc.Decoder)
-	msg = sirpent.MsgKindHandlers[env.Msg]()
-	if err := json.Unmarshal(raw, msg); err != nil {
-		log.Fatal(err)
-	}
-	new_game_msg := msg.(*sirpent.NewGameMsg)
-	fmt.Printf("%+v\n", new_game_msg)
-	game := new_game_msg.Game
-
 	for {
 		raw, env = decodeMsg(pc.Decoder)
 		msg = sirpent.MsgKindHandlers[env.Msg]()
 		if err := json.Unmarshal(raw, msg); err != nil {
 			log.Fatal(err)
 		}
-		turn_msg := msg.(*sirpent.TurnMsg)
-		fmt.Printf("%+v\n", turn_msg)
-		turn := turn_msg.Turn
+		new_game_msg := msg.(*sirpent.NewGameMsg)
+		fmt.Printf("%+v\n", new_game_msg)
+		game := new_game_msg.Game
 
-		snake := turn.Snakes[name]
-		head := snake.Segments[0]
+		for {
+			raw, env = decodeMsg(pc.Decoder)
+			msg = sirpent.MsgKindHandlers[env.Msg]()
+			if err := json.Unmarshal(raw, msg); err != nil {
+				log.Fatal(err)
+			}
+			turn_msg := msg.(*sirpent.TurnMsg)
+			fmt.Printf("%+v\n", turn_msg)
+			turn := turn_msg.Turn
 
-		var path []sirpent.Direction
-		var direction sirpent.Direction
-		path, err = pathfind(game.Grid, snake, head, turn.Food[0], turn.Food[0])
+			snake := turn.Snakes[name]
+			head := snake.Segments[0]
 
-		if err == nil && len(path) > 0 {
-			direction = path[len(path)-1]
-		} else {
-			fmt.Println(err)
-			directions := game.Grid.Directions()
-			for i := range directions {
-				direction = directions[i]
-				neighbour := game.Grid.CellNeighbour(head, direction)
-				grow_extra_segment := turn.Food[0].Eq(neighbour)
-				neighbour_snake := snake.Move(game.Grid, direction)
-				if grow_extra_segment {
-					neighbour_snake = neighbour_snake.Grow(snake.Segments[len(snake.Segments)-1])
-				}
-				if game.Grid.IsCellWithinBounds(neighbour) { //&& !neighbour_snake.HeadIntersectsSelf() {
-					break
+			var path []sirpent.Direction
+			var direction sirpent.Direction
+			path, err = pathfind(game.Grid, snake, head, turn.Food[0], turn.Food[0])
+
+			if err == nil && len(path) > 0 {
+				direction = path[len(path)-1]
+			} else {
+				fmt.Println(err)
+				directions := game.Grid.Directions()
+				for i := range directions {
+					direction = directions[i]
+					neighbour := game.Grid.CellNeighbour(head, direction)
+					grow_extra_segment := turn.Food[0].Eq(neighbour)
+					neighbour_snake := snake.Move(game.Grid, direction)
+					if grow_extra_segment {
+						neighbour_snake = neighbour_snake.Grow(snake.Segments[len(snake.Segments)-1])
+					}
+					if game.Grid.IsCellWithinBounds(neighbour) { //&& !neighbour_snake.HeadIntersectsSelf() {
+						break
+					}
 				}
 			}
-		}
 
-		move_msg := sirpent.MoveMsg{Direction: direction}
-		fmt.Printf("%+v\n", move_msg)
-		msg = sirpent.Msg{Msg: sirpent.Move, Data: move_msg}
-		err := pc.Encoder.Encode(msg)
-		if err != nil {
-			log.Fatal(err)
-			return
+			move_msg := sirpent.MoveMsg{Direction: direction}
+			fmt.Printf("%+v\n", move_msg)
+			msg = sirpent.Msg{Msg: sirpent.Move, Data: move_msg}
+			err := pc.Encoder.Encode(msg)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 		}
 	}
 }
