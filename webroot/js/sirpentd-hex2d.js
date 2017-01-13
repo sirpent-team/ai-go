@@ -23,8 +23,8 @@ function SirpentHex2DGame(game_id, canvas_id) {
       this.hexagon_rings = grid.rings
       this.hexagons_across = this.hexagon_rings * 2 + 1
       this.radius = Math.min(
-        this.width / (this.hexagons_across * Math.sqrt(3)),
-        this.height / (this.hexagons_across * 1.5 + 0.5)
+        this.width / (this.hexagons_across * 1.5 + 0.5),
+        this.height / (this.hexagons_across * Math.sqrt(3))
       ) - 0.1
       this.clear()
       this.drawHexagons()
@@ -83,7 +83,7 @@ SirpentHex2DGame.prototype.outlineHexagon = function (x, y) {
 
 // hex corner, http://www.redblobgames.com/grids/hexagons/#coordinates
 SirpentHex2DGame.prototype.hexCorner = function (center, radius, i) {
-  var angle_deg = 60 * i   + 30
+  var angle_deg = 60 * i
   var angle_rad = Math.PI / 180 * angle_deg
   var x = center.x + radius * Math.cos(angle_rad)
   var y = center.y + radius * Math.sin(angle_rad)
@@ -91,8 +91,8 @@ SirpentHex2DGame.prototype.hexCorner = function (center, radius, i) {
 }
 
 SirpentHex2DGame.prototype.drawHexagon = function (hex_vector, strokeColor, fillColor) {
-  var canvas_x = this.width / 2 + this.radius * Math.sqrt(3) * (hex_vector.x + hex_vector.z/2)
-  var canvas_y = this.height / 2 + this.radius * 1.5 * hex_vector.z
+  var canvas_x = this.width / 2 + this.radius * 1.5 * hex_vector.z
+  var canvas_y = this.height / 2 + this.radius * Math.sqrt(3) * (hex_vector.x + hex_vector.z/2)
 
   this.outlineHexagon(canvas_x, canvas_y)
 
@@ -116,8 +116,8 @@ SirpentHex2DGame.prototype.drawHexagon = function (hex_vector, strokeColor, fill
 }
 
 SirpentHex2DGame.prototype.writeOnHexagon = function (hex_vector, fillColor, text) {
-  var canvas_x = this.width / 2 + this.radius * Math.sqrt(3) * (hex_vector.x + hex_vector.z/2)
-  var canvas_y = this.height / 2 + this.radius * 1.5 * hex_vector.z
+  var canvas_x = this.width / 2 + this.radius * 1.5 * hex_vector.z
+  var canvas_y = this.height / 2 + this.radius * Math.sqrt(3) * (hex_vector.x + hex_vector.z/2)
 
   this.context.textBaseline = "middle"
   this.context.textAlign = "center"
